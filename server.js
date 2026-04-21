@@ -6,7 +6,9 @@ import { PORT } from "./config/env.js";
 import connectDB from "./config/db.js";
 import corsOptions from "./config/cors.js";
 import routes from "./routes/routes.js";
+import dns from "dns";
 
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const app = express();
 
 app.use(cors(corsOptions));
