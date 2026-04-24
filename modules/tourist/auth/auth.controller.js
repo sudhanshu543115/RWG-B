@@ -16,7 +16,7 @@ export const sendOtp = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in sendOtp:", error);
-        return res.status(400).json({ // Assuming most service errors are validation errors
+        return res.status(400).json({
             success: false,
             message: error.message || "An unexpected error occurred while sending OTP.",
         });
@@ -35,15 +35,12 @@ export const verifyOtp = async (req, res) => {
 
         const cookieOptions = {
             httpOnly: true,
-            secure:process.env.NODE_ENV === "production",
-            sameSite: "strict",
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         };
 
-
         return res
             .status(200)
-            .cookie("token", data.token, cookieOptions) // Set the cookie here
+            .cookie("token", data.token, cookieOptions)
             .json({
                 success: true,
                 message: "OTP verified successfully.",
