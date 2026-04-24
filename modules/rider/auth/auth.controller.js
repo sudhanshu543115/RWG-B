@@ -25,14 +25,12 @@ export const verifyRiderOtp = async (req, res) => {
 
         const cookieOptions = {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         };
 
         return res
             .status(200)
-            .cookie("token", result.token, cookieOptions) // Set the cookie here
+            .cookie("token", result.token, cookieOptions)
             .json({
                 success: true,
                 message: "OTP verified successfully.",
