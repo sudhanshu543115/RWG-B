@@ -25,7 +25,7 @@ export const verifyRiderOtp = async (req, res) => {
 
         const cookieOptions = {
             httpOnly: true,
-            secure: import.meta.env.NODE_ENV === "production",
+            secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         };
