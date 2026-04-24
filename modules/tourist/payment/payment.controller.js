@@ -1,34 +1,54 @@
-const { createOrderValidation } = require("./payment.validation");
-const { createOrderService } = require("./payment.service");
+import { createRazorpayOrder, verifyRazorpayPayment, getPaymentHistoryService } from "./payment.service.js";
 
-const createOrder = async (req, res) => {
-  try {
-    const { error } = createOrderValidation(req.body);
+export const createOrderController = async (req, res) => {
+    try {
+        const { bookingId } = req.body;
+        if (!bookingId) {
+            return res.status(400).json({ success: false, message: "Booking ID is required." });
+        }
 
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.details[0].message
-      });
+        const order = await createRazorpayOrder(bookingId);
+        return res.status(200).json({ success: true, order });
+    } catch (error) {
+        console.error("Error in createOrderController:", error);
+        return res.status(400).json({ success: false, message: error.message });
     }
-
-    const { amount } = req.body;
-
-    const order = await createOrderService(amount);
-
-    res.status(200).json({
-      success: true,
-      data: order
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to create order"
-    });
-  }
 };
 
-module.exports = {
-  createOrder
+export const verifyPaymentController = async (req, res) => {
+    try {
+        const { razorpayOrderId, razorpayPaymentId, razorpaySignature, bookingId } = req.body;
+        
+        if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature || !bookingId) {
+            return res.status(400).json({ success: false, message: "Missing payment or booking details." });
+        }
+
+        const result = await verifyRazorpayPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature, bookingId);
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: "Payment verified and booking confirmed.",
+            data: result.booking 
+        });
+    } catch (error) {
+        console.error("Error in verifyPaymentController:", error);
+        return res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const getPaymentHistory = async (req, res) => {
+    try {
+        const history = await getPaymentHistoryService(req.user._id);
+        return res.status(200).json({
+            success: true,
+            message: "Payment history retrieved successfully.",
+            data: history
+        });
+    } catch (error) {
+        console.error("Error in getPaymentHistory:", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to fetch payment history."
+        });
+    }
 };

@@ -32,11 +32,23 @@ export const verifyOtp = async (req, res) => {
         }
 
         const data = await verifyOtpService(phone, otp);
-        return res.status(200).json({
-            success: true,
-            message: "OTP verified successfully.",
-            data: data
-        });
+
+        const cookieOptions = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        };
+
+
+        return res
+            .status(200)
+            .cookie("token", data.token, cookieOptions) // Set the cookie here
+            .json({
+                success: true,
+                message: "OTP verified successfully.",
+                data: data
+            });
     } catch (error) {
         console.error("Error in verifyOtp:", error);
         return res.status(400).json({

@@ -1,6 +1,8 @@
-const Razorpay = require("razorpay");
+import Razorpay from "razorpay";
 
-module.exports = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_SECRET
+const razorpay = new Razorpay({
+  key_id: process.env.TEST_API_KEY,
+  key_secret: process.env.TEST_API_SECRET
 });
+
+export default razorpay;

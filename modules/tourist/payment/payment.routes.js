@@ -1,8 +1,18 @@
-const express = require("express");
+import express from "express";
+import { 
+    createOrderController,
+    verifyPaymentController,
+    getPaymentHistory 
+} from "./payment.controller.js";
+import { protectTourist } from "../../../middleware/auth.middleware.js";
+
 const router = express.Router();
 
-const { createOrder } = require("./payment.controller");
+// Apply protection to all payment routes
+router.use(protectTourist);
 
-router.post("/create-order", createOrder);
+router.get("/history", getPaymentHistory);
+router.post("/create-order", createOrderController);
+router.post("/verify-payment", verifyPaymentController);
 
-module.exports = router;
+export default router;
