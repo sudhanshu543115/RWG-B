@@ -33,9 +33,14 @@ export const verifyOtp = async (req, res) => {
 
         const data = await verifyOtpService(phone, otp);
 
+        // --- CROSS-DOMAIN COOKIE LOGIC ---
+        const isProduction = process.env.NODE_ENV === "production";
+        
         const cookieOptions = {
             httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            secure: isProduction, // Must be true for Cross-Domain/HTTPS
+            sameSite: isProduction ? "none" : "lax", // Must be "none" for Cross-Domain
         };
 
         return res

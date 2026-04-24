@@ -5,8 +5,14 @@ import { JWT_SECRET } from "../config/env.js";
 
 export const protectTourist = async (req, res, next) => {
     try {
-        // Change this line to read from cookies
-        const token = req.cookies.token;
+        let token;
+
+        // Check for token in headers or cookies
+        if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+            token = req.headers.authorization.split(" ")[1];
+        } else if (req.cookies.token) {
+            token = req.cookies.token;
+        }
 
         if (!token) {
             return res.status(401).json({ success: false, message: "Authentication required. Please login." });
@@ -32,8 +38,14 @@ export const protectTourist = async (req, res, next) => {
 
 export const protectRider = async (req, res, next) => {
     try {
-        // Change this line to read from cookies
-        const token = req.cookies.token;
+        let token;
+
+        // Check for token in headers or cookies
+        if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+            token = req.headers.authorization.split(" ")[1];
+        } else if (req.cookies.token) {
+            token = req.cookies.token;
+        }
 
         if (!token) {
             return res.status(401).json({ success: false, message: "Authentication required. Please login." });
