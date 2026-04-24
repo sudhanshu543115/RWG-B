@@ -7,12 +7,9 @@ import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
 import corsOptions from "./config/cors.js";
 import routes from "./routes/routes.js";
-<<<<<<< HEAD
-import razorpay from "./config/razorpay.js";
 
-=======
+
 import dns from "dns";
->>>>>>> main
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const app = express();
