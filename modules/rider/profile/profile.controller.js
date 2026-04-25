@@ -5,6 +5,20 @@ import {
     deleteRiderProfileService
 } from "./profile.service.js";
 
+// Helper function to map Cloudinary files to profile data
+const mapFilesToData = (files, data) => {
+    const fileFields = [
+        'profileImage', 'aadhaarImage', 'licenseImage', 
+        'rcImage', 'insuranceImage', 'vehicleImage', 'selfieImage'
+    ];
+
+    fileFields.forEach(field => {
+        if (files && files[field] && files[field][0]) {
+            data[field] = files[field][0].path; // Cloudinary URL
+        }
+    });
+};
+
 export const getProfile = async (req, res) => {
     try {
         const profile = await getRiderProfileService(req.user._id);
@@ -24,11 +38,16 @@ export const getProfile = async (req, res) => {
 
 export const completeProfile = async (req, res) => {
     try {
-        const updatedProfile = await completeRiderProfileService(req.user._id, req.body);
+        const profileData = { ...req.body };
+        
+        // Map uploaded files to the profile data
+        mapFilesToData(req.files, profileData);
+
+        const result = await completeRiderProfileService(req.user._id, profileData);
         return res.status(200).json({
             success: true,
             message: "Rider profile completed successfully.",
-            data: updatedProfile
+            data: result
         });
     } catch (error) {
         console.error("Error in completeProfile (Rider):", error);
@@ -41,11 +60,16 @@ export const completeProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
     try {
-        const updatedProfile = await updateRiderProfileService(req.user._id, req.body);
+        const profileData = { ...req.body };
+
+        // Map uploaded files if any new ones are uploaded
+        mapFilesToData(req.files, profileData);
+
+        const result = await updateRiderProfileService(req.user._id, profileData);
         return res.status(200).json({
             success: true,
             message: "Rider profile updated successfully.",
-            data: updatedProfile
+            data: result
         });
     } catch (error) {
         console.error("Error in updateProfile (Rider):", error);
@@ -71,4 +95,3 @@ export const deleteProfile = async (req, res) => {
         });
     }
 };
-
