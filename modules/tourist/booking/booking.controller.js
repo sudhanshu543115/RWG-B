@@ -4,10 +4,12 @@ import {
     getBookingByIdService, 
     cancelBookingService 
 } from "./booking.service.js";
+import { notifyAllRidersNewBooking } from "../../../core/socket.events.js";
 
 export const createBooking = async (req, res) => {
     try {
         const booking = await createBookingService(req.user._id, req.body);
+        notifyAllRidersNewBooking(booking);
         return res.status(201).json({
             success: true,
             message: "Booking created successfully.",
