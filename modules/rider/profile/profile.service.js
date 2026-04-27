@@ -1,13 +1,16 @@
 import Rider from "../../../models/rider/Rider.js";
 
-
+// Refined helper to include vehicle model and license expiry
 const checkProfileCompletion = (rider) => {
     return !!(
         rider.name && 
         rider.email && 
+        rider.city &&
         rider.vehicleType && 
+        rider.vehicleModel && // Added this
         rider.vehicleNumber && 
-        rider.licenseNumber
+        rider.licenseNumber &&
+        rider.licenseExpiry   // Added this
     );
 };
 
@@ -16,8 +19,6 @@ export const completeRiderProfileService = async (userId, profileData) => {
     if (!rider) throw new Error("Rider not found.");
 
     Object.assign(rider, profileData);
-
-
     rider.profileCompleted = checkProfileCompletion(rider);
 
     await rider.save();
@@ -29,8 +30,6 @@ export const updateRiderProfileService = async (userId, profileData) => {
     if (!rider) throw new Error("Rider not found.");
 
     Object.assign(rider, profileData);
-
-    
     rider.profileCompleted = checkProfileCompletion(rider);
 
     await rider.save();
