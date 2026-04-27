@@ -7,7 +7,8 @@ export const sendRiderOtp = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "OTP sent successfully.",
-            data: result
+            data: result,
+            
         });
     } catch (error) {
         console.error("Error in sendRiderOtp:", error);

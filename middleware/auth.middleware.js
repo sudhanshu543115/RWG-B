@@ -61,10 +61,10 @@ export const protectRider = async (req, res, next) => {
         const isAuthRoute = req.originalUrl.includes("/api/rider/auth");
 
         if (!rider.profileCompleted && !isProfileRoute && !isAuthRoute) {
-            return res.status(403).json({ 
-                success: false, 
+            return res.status(403).json({
+                success: false,
                 message: "Profile incomplete. Please complete your profile first.",
-                isProfileComplete: false 
+                isProfileComplete: false
             });
         }
 
@@ -74,8 +74,8 @@ export const protectRider = async (req, res, next) => {
         if (isOperationalRoute && rider.verificationStatus !== "approved") {
             return res.status(403).json({
                 success: false,
-                message: rider.verificationStatus === "rejected" 
-                    ? "Your account has been rejected. Please contact support." 
+                message: rider.verificationStatus === "rejected"
+                    ? "Your account has been rejected. Please contact support."
                     : "Account pending approval. You will be able to take rides once the admin approves your profile.",
                 verificationStatus: rider.verificationStatus
             });
