@@ -19,7 +19,15 @@ const performUpdate = async (userId, dataPayload = {}) => {
         throw new Error("Request body is empty or invalid. Please ensure you are sending JSON data and the Content-Type is set to application/json.");
     }
 
-    const updatableFields = ["name", "email", "nationality", "preferredLanguage", "bio", "gender"];
+    const updatableFields = [
+  "name",
+  "email",
+  "nationality",
+  "preferredLanguage",
+  "bio",
+  "gender",
+  "profileImage"
+];
     let isUpdated = false;
 
     updatableFields.forEach((field) => {
