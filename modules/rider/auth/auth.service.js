@@ -15,7 +15,7 @@ export const sendRiderOtpService = async (phone) => {
 
     await sendSMS(phone, `Your OTP is ${otp}`);
 
-    return { phone };
+    return { phone, otp };
 };
 
 export const verifyRiderOtpService = async (phone, otp) => {
