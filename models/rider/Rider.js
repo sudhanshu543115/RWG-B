@@ -4,7 +4,7 @@ const riderSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     name: { type: String, default: "" },
     email: { type: String, default: "" },
-    password: { type: String, default: "" }, 
+    //password: { type: String, default: "" }, 
     
     // Step 1: Personal
     city: { type: String, default: "" },

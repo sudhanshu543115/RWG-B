@@ -1,5 +1,6 @@
 import User from "../models/tourist/User.js";
 import Rider from "../models/rider/Rider.js";
+import Admin from "../models/admin/Admin.js";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.js";
 
@@ -88,4 +89,39 @@ export const protectRider = async (req, res, next) => {
         return res.status(401).json({ success: false, message: "Authentication failed." });
     }
 };
+
+
+export const protectAdmin = async (req, res, next) => {
+    try {
+        let token;
+
+        if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+            token = req.headers.authorization.split(" ")[1];
+        } else if (req.cookies.token) {
+            token = req.cookies.token;
+        }
+
+        if (!token) {
+            return res.status(401).json({ success: false, message: "Authentication required. Please login." });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        if (decoded.role !== "admin") {
+            return res.status(403).json({ success: false, message: "Unauthorized. Admin access required." });
+        }
+
+        const admin = await Admin.findById(decoded.id);
+        if (!admin) {
+            return res.status(404).json({ success: false, message: "Admin not found." });
+        }
+
+        req.user = admin;
+        next();
+    } catch (error) {
+        console.error("Admin Auth Error:", error);
+        return res.status(401).json({ success: false, message: "Authentication failed." });
+    }
+};
+
 
