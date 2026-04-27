@@ -1,52 +1,58 @@
 import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
-import { PORT } from "./config/env.js";
 import cookieParser from "cookie-parser";
+import dns from "dns";
+import http from "http";
 
+import { PORT } from "./config/env.js";
 import connectDB from "./config/db.js";
 import corsOptions from "./config/cors.js";
 import routes from "./routes/routes.js";
-
-
-import dns from "dns";
+import { initSocket } from "./config/socket.js";
+import { initSocketEvents } from "./core/socket.events.js";
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
-const app = express();
 
+const app = express();
+const server = http.createServer(app);
+
+// Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
+// DB
 connectDB();
-
-
-
-// Define routes
+const io = initSocket(server);
+initSocketEvents(io);
+// Routes
 app.get("/", (req, res) => {
-    res.send("Hello World!");
+  res.send("Hello World!");
 });
 
-// --- CHECK RAZORPAY CONFIGURATION ---
 app.get("/api/config/razorpay", (req, res) => {
-    res.json({
-        keyId: process.env.TEST_API_KEY, // only send ID, NOT secret
-        mode: "test",
-        message: process.env.TEST_API_KEY ? "Razorpay config OK" : "Missing Razorpay config"
-    });
+  res.json({
+    keyId: process.env.TEST_API_KEY,
+    mode: "test",
+    message: process.env.TEST_API_KEY
+      ? "Razorpay config OK"
+      : "Missing Razorpay config"
+  });
 });
-
 
 app.get("/api/health", (req, res) => {
-    res.status(200).json({
-        status: "success",
-        message: "Server is healthy and running smoothly",
-        timestamp: new Date().toISOString()
-    });
+  res.status(200).json({
+    status: "success",
+    message: "Server is healthy",
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.use(routes);
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+
+
+// Listen
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
