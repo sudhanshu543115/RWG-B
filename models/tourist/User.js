@@ -10,7 +10,8 @@ const userSchema = new mongoose.Schema({
     gender: { type: String, enum: ["Male", "Female", "Prefer_not_to_say", "Other", ""], default: "" },
     profileCompleted: { type: Boolean, default: false },
     walletBalance: { type: Number, default: 0 },
-    tripsCount: { type: Number, default: 0 }
+    tripsCount: { type: Number, default: 0 },
+      profileImage: { type: String, default: "" },
 }, {
     timestamps: true
 });
