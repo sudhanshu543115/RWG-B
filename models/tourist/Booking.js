@@ -132,7 +132,21 @@ const bookingSchema = new mongoose.Schema({
     lat: Number,
     lng: Number,
     updatedAt: Date
-  }
+  },
+
+
+  
+interestedRiders: [{
+    riderId: { type: mongoose.Schema.Types.ObjectId, ref: "Rider" },
+    interestedAt: { type: Date, default: Date.now }
+}],
+rejectedRiders: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Rider"
+}],
+
+
+
 
 }, { timestamps: true });
 

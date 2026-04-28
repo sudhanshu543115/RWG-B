@@ -37,6 +37,15 @@ export const initSocket = (server) => {
       }
     });
 
+     socket.on("join-city", (city) => {
+            socket.join(city.toLowerCase());
+            console.log(`🏙️ Rider ${socket.id} joined room: ${city}`);
+        });
+        // Rider leaves city room
+        socket.on("leave-city", (city) => {
+            socket.leave(city.toLowerCase());
+        });
+
     socket.on("disconnect", (reason) => {
       console.log("❌ SOCKET DISCONNECTED:", socket.id, reason);
     });
