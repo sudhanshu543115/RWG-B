@@ -5,13 +5,19 @@ import Settings from "../../../models/admin/Setting.js";
 
 
 export const getAllBookings = async () => {
-    const bookings = await Booking.find().populate("touristId").populate("riderId");
+    const bookings = await Booking.find()
+        .populate("touristId")
+        .populate("riderId")
+        .populate("interestedRiders.riderId", "name phone city rating");
     return bookings;
 }
 
 
 export const getBookingById = async (id) => {
-    const booking = await Booking.findById(id).populate("touristId").populate("riderId");
+    const booking = await Booking.findById(id)
+        .populate("touristId")
+        .populate("riderId")
+        .populate("interestedRiders.riderId", "name phone city rating");
     return booking;
 }
 

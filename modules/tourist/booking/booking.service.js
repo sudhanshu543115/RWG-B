@@ -4,10 +4,10 @@ import Rider from "../../../models/rider/Rider.js";
 import { getIO } from "../../../config/socket.js";
 
 export const createBookingService = async (userId, bookingData) => {
-    const { 
-        city, date, startTime, endTime, durationType, 
-        totalHours, pickupLocation, language, genderPreference, 
-        stops, specialRequest, pricing, payment 
+    const {
+        city, date, startTime, endTime, durationType,
+        totalHours, pickupLocation, language, genderPreference,
+        stops, specialRequest, pricing, payment
     } = bookingData;
 
     const newBooking = new Booking({
@@ -118,7 +118,7 @@ export const getBookingByIdService = async (userId, bookingId) => {
 
 export const cancelBookingService = async (userId, bookingId) => {
     const booking = await Booking.findOne({ touristId: userId, _id: bookingId });
-    
+
     if (!booking) {
         throw new Error("Booking not found.");
     }
