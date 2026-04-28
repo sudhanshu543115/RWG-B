@@ -30,7 +30,12 @@ export const expressInterestService = async (riderId, bookingId) => {
 
     booking.interestedRiders.push({ riderId, interestedAt: new Date() });
     await booking.save();
-    return booking;
+
+    // Return with rider names populated
+    const populatedBooking = await Booking.findById(bookingId)
+        .populate("interestedRiders.riderId", "name phone city rating");
+
+    return populatedBooking;
 };
 
 // Rider clicks "Reject"

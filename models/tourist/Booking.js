@@ -47,7 +47,7 @@ const bookingSchema = new mongoose.Schema({
 
   durationType: {
     type: String,
-    enum: ["5-hour", "half-day", "full-day", "custom" ],
+    enum: ["5-hour", "2-hour", "half-day", "full-day", "custom"],
     required: true
   },
 
