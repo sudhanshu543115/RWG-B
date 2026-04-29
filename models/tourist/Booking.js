@@ -119,7 +119,10 @@ const bookingSchema = new mongoose.Schema({
       "booked",            // Trip active/booked
       "completed",         // Trip finished
       "completed payment", // Full payment received
-      "cancelled"
+      "cancelled",
+      
+
+     
     ],
     default: "pending"
   },

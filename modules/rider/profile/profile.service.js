@@ -45,3 +45,13 @@ export const deleteRiderProfileService = async (userId) => {
     const rider = await Rider.findByIdAndDelete(userId);
     return rider;
 };
+
+export const updateRiderStatusService = async (userId, isOnline) => {
+    const rider = await Rider.findById(userId);
+    if (!rider) throw new Error("Rider not found.");
+
+    rider.isOnline = isOnline;
+    await rider.save();
+    return rider;
+};
+

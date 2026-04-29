@@ -2,7 +2,8 @@ import {
     getRiderProfileService,
     completeRiderProfileService,
     updateRiderProfileService,
-    deleteRiderProfileService
+    deleteRiderProfileService,
+    updateRiderStatusService
 } from "./profile.service.js";
 import sendEmail from "../../../core/mailer.js";
 import path from "path";
@@ -236,3 +237,30 @@ export const deleteProfile = async (req, res) => {
         });
     }
 };
+
+export const updateStatus = async (req, res) => {
+    try {
+        const { isOnline } = req.body;
+        
+        if (typeof isOnline !== "boolean") {
+            return res.status(400).json({
+                success: false,
+                message: "isOnline status (boolean) is required."
+            });
+        }
+
+        const result = await updateRiderStatusService(req.user._id, isOnline);
+        return res.status(200).json({
+            success: true,
+            message: `Rider is now ${isOnline ? "online" : "offline"}.`,
+            data: { isOnline: result.isOnline }
+        });
+    } catch (error) {
+        console.error("Error in updateStatus (Rider):", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to update status."
+        });
+    }
+};
+

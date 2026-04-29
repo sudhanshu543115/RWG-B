@@ -3,7 +3,8 @@ import {
     getProfile,
     completeProfile,
     updateProfile,
-    deleteProfile
+    deleteProfile,
+    updateStatus
 } from "./profile.controller.js";
 import { protectRider } from "../../../middleware/auth.middleware.js";
 import { upload } from "../../../config/cloudinary.js";
@@ -33,5 +34,7 @@ router.route("/")
     { name: 'selfieImage', maxCount: 1 }
 ]), updateProfile)
     .delete(deleteProfile);
+
+router.patch("/status", updateStatus);
 
 export default router;
