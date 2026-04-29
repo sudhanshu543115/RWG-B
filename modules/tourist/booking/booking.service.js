@@ -32,6 +32,7 @@ export const createBookingService = async (userId, bookingData) => {
     });
 
     await newBooking.save();
+    
 
     // Emit to all riders in that city
     try {
