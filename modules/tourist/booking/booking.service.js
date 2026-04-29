@@ -26,9 +26,10 @@ export const createBookingService = async (userId, bookingData) => {
         pricing,
         payment: {
             ...payment,
-            status: "paid" // Ensure payment status is 'paid' inside the object
+            status: "paid" // Force payment status to 'paid' inside the object
         },
-        status: "advance paid" // Force trip status to 'advance paid'
+        bookingStatus: "searching", // Broadcast to riders
+        assignmentStatus: "waiting_for_riders"
     });
 
     await newBooking.save();
@@ -86,7 +87,12 @@ export const createBookingService = async (userId, bookingData) => {
     // }
 
 
-    return newBooking;
+    // Return a clean object for the tourist
+    const bookingResponse = newBooking.toObject();
+    delete bookingResponse.interestedRiders;
+    delete bookingResponse.rejectedRiders;
+
+    return bookingResponse;
 };
 
 
@@ -107,12 +113,15 @@ export const createBookingService = async (userId, bookingData) => {
 
 
 export const getBookingsService = async (userId) => {
-    const bookings = await Booking.find({ touristId: userId }).sort({ createdAt: -1 });
+    const bookings = await Booking.find({ touristId: userId })
+        .select("-interestedRiders -rejectedRiders")
+        .sort({ createdAt: -1 });
     return bookings;
 };
 
 export const getBookingByIdService = async (userId, bookingId) => {
-    const booking = await Booking.findOne({ touristId: userId, _id: bookingId });
+    const booking = await Booking.findOne({ touristId: userId, _id: bookingId })
+        .select("-interestedRiders -rejectedRiders");
     if (!booking) {
         throw new Error("Booking not found.");
     }
@@ -126,11 +135,11 @@ export const cancelBookingService = async (userId, bookingId) => {
         throw new Error("Booking not found.");
     }
 
-    if (booking.status === "cancelled") {
+    if (booking.bookingStatus === "cancelled") {
         throw new Error("Booking is already cancelled.");
     }
 
-    booking.status = "cancelled";
+    booking.bookingStatus = "cancelled";
     await booking.save();
     return booking;
 };
