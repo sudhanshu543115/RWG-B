@@ -101,7 +101,7 @@ const bookingSchema = new mongoose.Schema({
     },
     status: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "partial_paid", "paid", "failed"],
       default: "pending"
     },
     amountPaid: { type: Number, default: 0 },
@@ -109,22 +109,28 @@ const bookingSchema = new mongoose.Schema({
   },
 
   // 🚦 BOOKING STATUS
-  status: {
+  bookingStatus: {
     type: String,
     enum: [
-      "pending",           // Initial request
-      "advance paid",      // Tourist paid 30% advance
-      "confirmed",         // Rider assigned
-      "ongoing",           // Ride started
-      "booked",            // Trip active/booked
-      "completed",         // Trip finished
-      "completed payment", // Full payment received
-      "cancelled",
-      
-
-     
+      "pending",        // booking created
+      "searching",      // broadcast to riders
+      "assigned",       // rider assigned
+      "ongoing",        // ride started
+      "completed",      // ride finished
+      "cancelled"
     ],
     default: "pending"
+  },
+
+  assignmentStatus: {
+    type: String,
+    enum: [
+      "not_assigned",
+      "waiting_for_riders",
+      "rider_selected",
+      "admin_assigned"
+    ],
+    default: "not_assigned"
   },
 
   // 🔐 OTP

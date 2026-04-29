@@ -17,7 +17,7 @@ export const getPendingBookingsForRider = async (riderId) => {
     const query = {
         city: { $regex: new RegExp(`^${rider.city.trim()}$`, "i") },
         language: { $in: riderLanguagesRegex },
-        status: "advance paid", // Riders see bookings only AFTER advance is paid
+        bookingStatus: "searching", // Riders see bookings only AFTER advance is paid and broadcast starts
         riderId: null,
         rejectedRiders: { $nin: [riderId] }
     };
@@ -74,9 +74,9 @@ export const rejectBookingService = async (riderId, bookingId) => {
 export const startRideService = async (riderId, bookingId) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId });
     if (!booking) throw new Error("Booking not found or not assigned to you.");
-    if (booking.status !== "confirmed") throw new Error("Booking must be confirmed to start.");
+    if (booking.bookingStatus !== "assigned") throw new Error("Booking must be assigned to start.");
 
-    booking.status = "ongoing";
+    booking.bookingStatus = "ongoing";
     await booking.save();
     return booking;
 };
@@ -85,9 +85,9 @@ export const startRideService = async (riderId, bookingId) => {
 export const completeRideService = async (riderId, bookingId) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId });
     if (!booking) throw new Error("Booking not found or not assigned to you.");
-    if (booking.status !== "ongoing") throw new Error("Only ongoing rides can be completed.");
+    if (booking.bookingStatus !== "ongoing") throw new Error("Only ongoing rides can be completed.");
 
-    booking.status = "completed payment"; // Final state as requested
+    booking.bookingStatus = "completed"; 
     await booking.save();
     return booking;
 };
