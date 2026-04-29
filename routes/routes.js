@@ -13,6 +13,7 @@ import touristPaymentRoutes from "../modules/tourist/payment/payment.routes.js";
 import adminAuthRoutes from "../modules/admin/auth/auth.routes.js";
 import adminRiderRoutes from "../modules/admin/riders/riders.routes.js";
 import adminBookingRoutes from "../modules/admin/bookings/bookings.routes.js";
+import adminTouristRoutes from "../modules/admin/tourists/tourists.routes.js";
 const router = express.Router();
 
 // Tourist Routes
@@ -34,7 +35,7 @@ router.use("/api/rider/bookings", riderBookingRoutes);
 router.use("/api/admin/auth", adminAuthRoutes);
 router.use("/api/admin/riders", adminRiderRoutes);
 router.use("/api/admin/bookings", adminBookingRoutes);
-
+router.use("/api/admin/tourists", adminTouristRoutes);
 
 
 export default router;
