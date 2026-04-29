@@ -112,11 +112,13 @@ const bookingSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
-      "pending",     // waiting for guide acceptance
-      "confirmed",   // guide accepted and advance paid
-      "ongoing",
-      "booked",     // trip started
-      "completed",   // trip finished
+      "pending",           // Initial request
+      "advance paid",      // Tourist paid 30% advance
+      "confirmed",         // Rider assigned
+      "ongoing",           // Ride started
+      "booked",            // Trip active/booked
+      "completed",         // Trip finished
+      "completed payment", // Full payment received
       "cancelled"
     ],
     default: "pending"

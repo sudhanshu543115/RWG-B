@@ -69,7 +69,6 @@ export const assignRiderToBookingController = async (req, res) => {
 
         // Assign rider and auto-confirm booking
         const booking = await assignRiderToBooking(req.params.id, riderId);
-        await updateBookingStatus(req.params.id, "confirmed");
 
         res.status(200).json({ success: true, message: "Rider assigned & booking confirmed.", data: booking });
     } catch (error) {

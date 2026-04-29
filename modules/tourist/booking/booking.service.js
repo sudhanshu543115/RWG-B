@@ -24,12 +24,15 @@ export const createBookingService = async (userId, bookingData) => {
         stops,
         specialRequest,
         pricing,
-        payment,
-        status: "pending",
-        paymentStatus: "pending"
+        payment: {
+            ...payment,
+            status: "paid" // Ensure payment status is 'paid' inside the object
+        },
+        status: "advance paid" // Force trip status to 'advance paid'
     });
 
     await newBooking.save();
+    
 
     // Emit to all riders in that city
     try {

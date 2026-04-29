@@ -6,6 +6,7 @@ import {
 } from "./profile.service.js";
 import sendEmail from "../../../core/mailer.js";
 import path from "path";
+import fs from "fs";
 
 // Helper function to map Cloudinary files to profile data
 const mapFilesToData = (files, data) => {
@@ -49,6 +50,15 @@ export const completeProfile = async (req, res) => {
 
         const logoPath = path.join(process.cwd(), "logo.png");
 
+        const attachments = [];
+        if (fs.existsSync(logoPath)) {
+            attachments.push({
+                filename: 'logo.png',
+                path: logoPath,
+                cid: 'rwg-logo'
+            });
+        }
+
         // Send email to rider
         await sendEmail(
             result.email || req.user.email,
@@ -62,7 +72,7 @@ export const completeProfile = async (req, res) => {
                                 <!-- Header -->
                                 <tr>
                                     <td style="background:linear-gradient(135deg, #FFC15E 0%, #F59000 55%, #E07200 100%);padding:25px 20px;text-align:center;">
-                                        <img src="cid:rwg-logo" alt="Ride With Guide" width="80" style="display:block;margin:0 auto 12px; border-radius: 8px;">
+                                        ${fs.existsSync(logoPath) ? '<img src="cid:rwg-logo" alt="Ride With Guide" width="80" style="display:block;margin:0 auto 12px; border-radius: 8px;">' : ''}
                                         <h1 style="margin:0;font-size:24px;color:#ffffff;font-family:'Syne',Arial,sans-serif;font-weight:700;letter-spacing:-0.5px;">
                                             Ride With Guide
                                         </h1>
@@ -173,11 +183,7 @@ export const completeProfile = async (req, res) => {
                 </table>
             </div>
             `,
-            [{
-                filename: 'logo.png',
-                path: logoPath,
-                cid: 'rwg-logo'
-            }]
+            attachments
         );
         return res.status(200).json({
             success: true,

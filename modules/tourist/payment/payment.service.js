@@ -58,7 +58,7 @@ export const verifyRazorpayPayment = async (razorpayOrderId, razorpayPaymentId, 
         paidAt: new Date()
     };
 
-    booking.status = "booked"; // Mark as booked
+    booking.status = "advance paid"; // Mark as advance paid so riders can see it
     await booking.save();
 
     return { success: true, booking };

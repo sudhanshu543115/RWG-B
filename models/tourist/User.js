@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
     profileCompleted: { type: Boolean, default: false },
     walletBalance: { type: Number, default: 0 },
     tripsCount: { type: Number, default: 0 },
-      profileImage: { type: String, default: "" },
+    profileImage: { type: String,  default: "" },
 }, {
     timestamps: true
 });
