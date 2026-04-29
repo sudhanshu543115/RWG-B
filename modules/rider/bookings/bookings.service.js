@@ -6,13 +6,32 @@ export const getPendingBookingsForRider = async (riderId) => {
     const rider = await Rider.findById(riderId);
     if (!rider) throw new Error("Rider not found.");
 
-    const bookings = await Booking.find({
-        city: { $regex: new RegExp(`^${rider.city}$`, "i") },
-        language: { $in: rider.languages },
-        status: "pending",
+    // Check if profile is approved (double check even though middleware handles it)
+    if (rider.verificationStatus !== "approved") {
+        return []; 
+    }
+
+    // Create case-insensitive regex for each language the rider speaks
+    const riderLanguagesRegex = rider.languages.map(lang => new RegExp(`^${lang.trim()}$`, "i"));
+
+    const query = {
+        city: { $regex: new RegExp(`^${rider.city.trim()}$`, "i") },
+        language: { $in: riderLanguagesRegex },
+        status: "advance paid", // Riders see bookings only AFTER advance is paid
         riderId: null,
         rejectedRiders: { $nin: [riderId] }
-    }).populate("touristId", "name phone").sort({ createdAt: -1 });
+    };
+
+    // Filter by Gender Preference
+    if (rider.gender === "Male") {
+        query.genderPreference = { $ne: "Female guide preferred" };
+    } else if (rider.gender === "Female") {
+        query.genderPreference = { $ne: "Male guide preferred" };
+    }
+
+    const bookings = await Booking.find(query)
+        .populate("touristId", "name phone")
+        .sort({ createdAt: -1 });
 
     return bookings;
 };
@@ -46,6 +65,29 @@ export const rejectBookingService = async (riderId, bookingId) => {
     if (!booking.rejectedRiders.includes(riderId)) {
         booking.rejectedRiders.push(riderId);
     }
+    await booking.save();
+    return booking;
+};
+
+
+// Start the ride
+export const startRideService = async (riderId, bookingId) => {
+    const booking = await Booking.findOne({ _id: bookingId, riderId });
+    if (!booking) throw new Error("Booking not found or not assigned to you.");
+    if (booking.status !== "confirmed") throw new Error("Booking must be confirmed to start.");
+
+    booking.status = "ongoing";
+    await booking.save();
+    return booking;
+};
+
+// Complete the ride
+export const completeRideService = async (riderId, bookingId) => {
+    const booking = await Booking.findOne({ _id: bookingId, riderId });
+    if (!booking) throw new Error("Booking not found or not assigned to you.");
+    if (booking.status !== "ongoing") throw new Error("Only ongoing rides can be completed.");
+
+    booking.status = "completed payment"; // Final state as requested
     await booking.save();
     return booking;
 };

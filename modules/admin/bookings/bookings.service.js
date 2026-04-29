@@ -32,7 +32,11 @@ export const deleteBooking = async (id) => {
 
 
 export const assignRiderToBooking = async (id, riderId) => {
-    const booking = await Booking.findByIdAndUpdate(id, { riderId: riderId }, { new: true });
+    const booking = await Booking.findByIdAndUpdate(
+        id, 
+        { riderId: riderId, status: "confirmed" }, 
+        { new: true }
+    );
     return booking;
 }
 
@@ -44,7 +48,7 @@ export const autoAssignRiderService = async (bookingId) => {
 
     // Find best matching rider: same city, speaks the language, verified, and not already busy
     const busyRiderIds = await Booking.find({
-        status: { $in: ["confirmed", "ongoing"] },
+        status: { $in: ["confirmed", "ongoing", "booked"] },
         riderId: { $ne: null }
     }).distinct("riderId");
 
