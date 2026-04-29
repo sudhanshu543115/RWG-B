@@ -8,8 +8,15 @@ export const getAllBookings = async () => {
     const bookings = await Booking.find()
         .populate("touristId")
         .populate("riderId")
-        .populate("interestedRiders.riderId", "name phone city rating");
-    return bookings;
+        .populate("interestedRiders.riderId", "name phone city rating")
+        .lean();
+
+    // Add counts
+    return bookings.map(booking => ({
+        ...booking,
+        interestedCount: booking.interestedRiders?.length || 0,
+        rejectedCount: booking.rejectedRiders?.length || 0
+    }));
 }
 
 
@@ -17,8 +24,16 @@ export const getBookingById = async (id) => {
     const booking = await Booking.findById(id)
         .populate("touristId")
         .populate("riderId")
-        .populate("interestedRiders.riderId", "name phone city rating");
-    return booking;
+        .populate("interestedRiders.riderId", "name phone city rating")
+        .lean();
+
+    if (!booking) return null;
+
+    return {
+        ...booking,
+        interestedCount: booking.interestedRiders?.length || 0,
+        rejectedCount: booking.rejectedRiders?.length || 0
+    };
 }
 
 
