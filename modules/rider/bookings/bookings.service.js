@@ -9,7 +9,7 @@ export const getPendingBookingsForRider = async (riderId) => {
         throw new Error("Rider not found.");
     }
 
-    // only approved rider
+    // Only approved riders can see bookings
     if (rider.verificationStatus !== "approved") {
         return [];
     }
@@ -49,23 +49,16 @@ export const getPendingBookingsForRider = async (riderId) => {
         query.genderPreference = {
             $ne: "Female guide preferred",
         };
-    }
-
-    if (rider.gender === "Female") {
+    } else if (rider.gender === "Female") {
         query.genderPreference = {
             $ne: "Male guide preferred",
         };
     }
 
-    console.log("Rider:", rider.name);
-    console.log("Query:", query);
-
-
     const bookings = await Booking.find(query)
         .populate("touristId", "name phone profileImage")
         .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
         .sort({ createdAt: -1 });
-    console.log("Bookings Found:", bookings.length);
 
     return bookings;
 };
@@ -102,7 +95,6 @@ export const rejectBookingService = async (riderId, bookingId) => {
     await booking.save();
     return booking;
 };
-
 
 // Start the ride
 export const startRideService = async (riderId, bookingId) => {
