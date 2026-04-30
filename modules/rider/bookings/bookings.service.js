@@ -3,38 +3,74 @@ import Rider from "../../../models/rider/Rider.js";
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
-    const rider = await Rider.findById(riderId);
-    if (!rider) throw new Error("Rider not found.");
+  const rider = await Rider.findById(riderId);
 
-    // Check if profile is approved (double check even though middleware handles it)
-    if (rider.verificationStatus !== "approved") {
-        return []; 
-    }
+  if (!rider) {
+    throw new Error("Rider not found.");
+  }
 
-    // Create case-insensitive regex for each language the rider speaks
-    const riderLanguagesRegex = rider.languages.map(lang => new RegExp(`^${lang.trim()}$`, "i"));
+  // only approved rider
+  if (rider.verificationStatus !== "approved") {
+    return [];
+  }
 
-    const query = {
-        city: { $regex: new RegExp(`^${rider.city.trim()}$`, "i") },
-        language: { $in: riderLanguagesRegex },
-        bookingStatus: "searching", // Riders see bookings only AFTER advance is paid and broadcast starts
-        riderId: null,
-        rejectedRiders: { $nin: [riderId] }
+  const query = {
+    bookingStatus: "searching",
+
+    // city match (case insensitive)
+    city: {
+      $regex: rider.city.trim(),
+      $options: "i",
+    },
+
+    // booking not accepted yet
+    $or: [
+      { riderId: null },
+      { riderId: { $exists: false } },
+    ],
+
+    // rejected rider not included
+    rejectedRiders: {
+      $nin: [rider._id],
+    },
+  };
+
+  // multiple languages match
+  if (rider.languages && rider.languages.length > 0) {
+    query.language = {
+      $in: rider.languages.map(
+        (lang) => new RegExp(lang.trim(), "i")
+      ),
     };
+  }
 
-    // Filter by Gender Preference
-    if (rider.gender === "Male") {
-        query.genderPreference = { $ne: "Female guide preferred" };
-    } else if (rider.gender === "Female") {
-        query.genderPreference = { $ne: "Male guide preferred" };
-    }
+  // gender preference filter
+  if (rider.gender === "Male") {
+    query.genderPreference = {
+      $ne: "Female guide preferred",
+    };
+  }
+
+  if (rider.gender === "Female") {
+    query.genderPreference = {
+      $ne: "Male guide preferred",
+    };
+  }
+
+  console.log("Rider:", rider.name);
+  console.log("Query:", query);
+
+  const bookings = await Booking.find(query)
+    .populate("touristId", "name phone")
+    .sort({ createdAt: -1 });
 
     const bookings = await Booking.find(query)
         .populate("touristId", "name phone profileImage")
         .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
         .sort({ createdAt: -1 });
+  console.log("Bookings Found:", bookings.length);
 
-    return bookings;
+  return bookings;
 };
 
 // Rider clicks "Interested"
