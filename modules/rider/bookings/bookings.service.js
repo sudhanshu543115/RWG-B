@@ -4,35 +4,68 @@ import Rider from "../../../models/rider/Rider.js";
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
     const rider = await Rider.findById(riderId);
-    if (!rider) throw new Error("Rider not found.");
 
-    // Check if profile is approved (double check even though middleware handles it)
-    if (rider.verificationStatus !== "approved") {
-        return []; 
+    if (!rider) {
+        throw new Error("Rider not found.");
     }
 
-    // Create case-insensitive regex for each language the rider speaks
-    const riderLanguagesRegex = rider.languages.map(lang => new RegExp(`^${lang.trim()}$`, "i"));
+    // only approved rider
+    if (rider.verificationStatus !== "approved") {
+        return [];
+    }
 
     const query = {
-        city: { $regex: new RegExp(`^${rider.city.trim()}$`, "i") },
-        language: { $in: riderLanguagesRegex },
-        bookingStatus: "searching", // Riders see bookings only AFTER advance is paid and broadcast starts
-        riderId: null,
-        rejectedRiders: { $nin: [riderId] }
+        bookingStatus: "searching",
+
+        // city match (case insensitive)
+        city: {
+            $regex: rider.city.trim(),
+            $options: "i",
+        },
+
+        // booking not accepted yet
+        $or: [
+            { riderId: null },
+            { riderId: { $exists: false } },
+        ],
+
+        // rejected rider not included
+        rejectedRiders: {
+            $nin: [rider._id],
+        },
     };
 
-    // Filter by Gender Preference
-    if (rider.gender === "Male") {
-        query.genderPreference = { $ne: "Female guide preferred" };
-    } else if (rider.gender === "Female") {
-        query.genderPreference = { $ne: "Male guide preferred" };
+    // multiple languages match
+    if (rider.languages && rider.languages.length > 0) {
+        query.language = {
+            $in: rider.languages.map(
+                (lang) => new RegExp(lang.trim(), "i")
+            ),
+        };
     }
+
+    // gender preference filter
+    if (rider.gender === "Male") {
+        query.genderPreference = {
+            $ne: "Female guide preferred",
+        };
+    }
+
+    if (rider.gender === "Female") {
+        query.genderPreference = {
+            $ne: "Male guide preferred",
+        };
+    }
+
+    console.log("Rider:", rider.name);
+    console.log("Query:", query);
+
 
     const bookings = await Booking.find(query)
         .populate("touristId", "name phone profileImage")
         .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
         .sort({ createdAt: -1 });
+    console.log("Bookings Found:", bookings.length);
 
     return bookings;
 };
@@ -88,7 +121,7 @@ export const completeRideService = async (riderId, bookingId) => {
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "ongoing") throw new Error("Only ongoing rides can be completed.");
 
-    booking.bookingStatus = "completed"; 
+    booking.bookingStatus = "completed";
     await booking.save();
     return booking;
 };
