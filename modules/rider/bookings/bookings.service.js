@@ -60,14 +60,11 @@ export const getPendingBookingsForRider = async (riderId) => {
   console.log("Rider:", rider.name);
   console.log("Query:", query);
 
-  const bookings = await Booking.find(query)
-    .populate("touristId", "name phone")
-    .sort({ createdAt: -1 });
 
-    const bookings = await Booking.find(query)
-        .populate("touristId", "name phone profileImage")
-        .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
-        .sort({ createdAt: -1 });
+  const bookings = await Booking.find(query)
+    .populate("touristId", "name phone profileImage")
+    .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
+    .sort({ createdAt: -1 });
   console.log("Bookings Found:", bookings.length);
 
   return bookings;
