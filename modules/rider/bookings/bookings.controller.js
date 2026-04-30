@@ -1,7 +1,10 @@
 import { 
     getPendingBookingsForRider, 
     expressInterestService, 
-    rejectBookingService 
+    rejectBookingService,
+    getMyBookingsService,
+    startRideService,
+    completeRideService
 } from "./bookings.service.js";
 
 export const getPendingBookings = async (req, res) => {
@@ -26,6 +29,33 @@ export const rejectBooking = async (req, res) => {
     try {
         const booking = await rejectBookingService(req.user._id, req.params.id);
         res.status(200).json({ success: true, message: "Booking rejected.", data: booking });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const getMyBookings = async (req, res) => {
+    try {
+        const bookings = await getMyBookingsService(req.user._id);
+        res.status(200).json({ success: true, data: bookings });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const startRide = async (req, res) => {
+    try {
+        const booking = await startRideService(req.user._id, req.params.id);
+        res.status(200).json({ success: true, message: "Ride started!", data: booking });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const completeRide = async (req, res) => {
+    try {
+        const booking = await completeRideService(req.user._id, req.params.id);
+        res.status(200).json({ success: true, message: "Ride completed!", data: booking });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
