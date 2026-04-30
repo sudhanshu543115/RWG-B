@@ -64,6 +64,10 @@ export const getPendingBookingsForRider = async (riderId) => {
     .populate("touristId", "name phone")
     .sort({ createdAt: -1 });
 
+    const bookings = await Booking.find(query)
+        .populate("touristId", "name phone profileImage")
+        .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
+        .sort({ createdAt: -1 });
   console.log("Bookings Found:", bookings.length);
 
   return bookings;
@@ -123,4 +127,13 @@ export const completeRideService = async (riderId, bookingId) => {
     booking.bookingStatus = "completed"; 
     await booking.save();
     return booking;
+};
+
+// Get all bookings assigned to this rider (Assigned, Ongoing, Completed)
+export const getMyBookingsService = async (riderId) => {
+    const bookings = await Booking.find({ riderId })
+        .populate("touristId", "name phone profileImage")
+        .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
+        .sort({ updatedAt: -1 });
+    return bookings;
 };
