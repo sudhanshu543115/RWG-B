@@ -96,11 +96,16 @@ export const rejectBookingService = async (riderId, bookingId) => {
     return booking;
 };
 
-// Start the ride
-export const startRideService = async (riderId, bookingId) => {
+// Start the ride with OTP verification
+export const startRideService = async (riderId, bookingId, enteredOtp) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId });
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "assigned") throw new Error("Booking must be assigned to start.");
+
+    // Verify OTP
+    if (booking.rideOTP !== enteredOtp) {
+        throw new Error("Invalid OTP. Please ask the tourist for the correct code.");
+    }
 
     booking.bookingStatus = "ongoing";
     await booking.save();
@@ -123,6 +128,6 @@ export const getMyBookingsService = async (riderId) => {
     const bookings = await Booking.find({ riderId })
         .populate("touristId", "name phone profileImage")
         .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
-        .sort({ updatedAt: -1 });
+        .sort({ createdAt: -1 });
     return bookings;
 };

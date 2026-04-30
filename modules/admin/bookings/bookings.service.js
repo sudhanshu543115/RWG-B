@@ -9,6 +9,7 @@ export const getAllBookings = async () => {
         .populate("touristId")
         .populate("riderId")
         .populate("interestedRiders.riderId", "name phone city rating")
+        .sort({ createdAt: -1 })
         .lean();
 
     // Add counts
@@ -47,12 +48,16 @@ export const deleteBooking = async (id) => {
 
 
 export const assignRiderToBooking = async (id, riderId) => {
+    // Generate a 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
     const booking = await Booking.findByIdAndUpdate(
         id, 
         { 
             riderId: riderId, 
             bookingStatus: "assigned",
-            assignmentStatus: "admin_assigned"
+            assignmentStatus: "admin_assigned",
+            rideOTP: otp
         }, 
         { new: true }
     );

@@ -45,7 +45,11 @@ export const getMyBookings = async (req, res) => {
 
 export const startRide = async (req, res) => {
     try {
-        const booking = await startRideService(req.user._id, req.params.id);
+        const { otp } = req.body;
+        if (!otp) {
+            return res.status(400).json({ success: false, message: "OTP is required to start the ride." });
+        }
+        const booking = await startRideService(req.user._id, req.params.id, otp);
         res.status(200).json({ success: true, message: "Ride started!", data: booking });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
