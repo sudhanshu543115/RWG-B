@@ -1,7 +1,5 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Settings from "../../../models/admin/Setting.js";
-import Rider from "../../../models/rider/Rider.js";
-import { getIO } from "../../../config/socket.js";
 
 export const createBookingService = async (userId, bookingData) => {
     const {
@@ -33,22 +31,6 @@ export const createBookingService = async (userId, bookingData) => {
     });
 
     await newBooking.save();
-    
-
-    // Emit to all riders in that city
-    try {
-        const io = getIO();
-        io.to(newBooking.city.toLowerCase()).emit("new-booking", {
-            bookingId: newBooking._id,
-            city: newBooking.city,
-            date: newBooking.date,
-            startTime: newBooking.startTime,
-            durationType: newBooking.durationType,
-            message: `New ${newBooking.durationType} tour request in ${newBooking.city}!`
-        });
-    } catch (err) {
-        console.error("Socket emit error:", err.message);
-    }
 
     // // Auto-assign rider if toggle is ON
     // try {
