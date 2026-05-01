@@ -114,6 +114,7 @@ export const createBookingService = async (userId, bookingData) => {
 
 export const getBookingsService = async (userId) => {
     const bookings = await Booking.find({ touristId: userId })
+        .populate("riderId", "name phone profileImage vehicleModel vehicleNumber vehicleType rating")
         .select("-interestedRiders -rejectedRiders")
         .sort({ createdAt: -1 });
     return bookings;
@@ -121,6 +122,7 @@ export const getBookingsService = async (userId) => {
 
 export const getBookingByIdService = async (userId, bookingId) => {
     const booking = await Booking.findOne({ touristId: userId, _id: bookingId })
+        .populate("riderId", "name phone profileImage vehicleModel vehicleNumber vehicleType rating")
         .select("-interestedRiders -rejectedRiders");
     if (!booking) {
         throw new Error("Booking not found.");
