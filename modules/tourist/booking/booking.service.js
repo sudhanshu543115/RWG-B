@@ -24,10 +24,10 @@ export const createBookingService = async (userId, bookingData) => {
         pricing,
         payment: {
             ...payment,
-            status: "paid" // Force payment status to 'paid' inside the object
+            status: "pending"
         },
-        bookingStatus: "searching", // Broadcast to riders
-        assignmentStatus: "waiting_for_riders"
+        bookingStatus: "pending", 
+        assignmentStatus: "not_assigned"
     });
 
     await newBooking.save();

@@ -26,7 +26,6 @@ export const protectTourist = async (req, res, next) => {
             if (!user) {
                 return res.status(404).json({ success: false, message: "User not found." });
             }
-
             req.user = user;
             next();
         } catch (jwtError) {
@@ -123,5 +122,8 @@ export const protectAdmin = async (req, res, next) => {
         return res.status(401).json({ success: false, message: "Authentication failed." });
     }
 };
+
+
+
 
 
