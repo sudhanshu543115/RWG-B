@@ -66,33 +66,46 @@ export const assignRiderToBooking = async (id, riderId) => {
 
 
 export const autoAssignRiderService = async (bookingId) => {
-    const booking = await Booking.findById(bookingId);
+    // 1. Find the booking and populate the interested riders' full details
+    const booking = await Booking.findById(bookingId)
+        .populate("interestedRiders.riderId", "name rating totalRides isVerified verificationStatus profileCompleted city languages");
+    
     if (!booking) throw new Error("Booking not found.");
     if (booking.riderId) throw new Error("Rider already assigned to this booking.");
+    
+    // 2. Check if anyone has expressed interest
+    if (!booking.interestedRiders || booking.interestedRiders.length === 0) {
+        throw new Error("No riders have expressed interest in this booking yet. Cannot auto-assign.");
+    }
 
-    // Find best matching rider: same city, speaks the language, verified, and not already busy
-    const busyRiderIds = await Booking.find({
-        bookingStatus: { $in: ["assigned", "ongoing"] },
-        riderId: { $ne: null }
-    }).distinct("riderId");
+    // 3. Filter and Sort the interested riders to find the best match
+    // We sort by rating (highest first) and then by total rides
+    const candidates = booking.interestedRiders
+        .map(item => item.riderId)
+        .filter(rider => rider.verificationStatus === "approved" && rider.profileCompleted === true)
+        .sort((a, b) => {
+            if (b.rating !== a.rating) return b.rating - a.rating;
+            return b.totalRides - a.totalRides;
+        });
 
-    const matchedRider = await Rider.findOne({
-        city: { $regex: new RegExp(`^${booking.city}$`, "i") },
-        languages: booking.language,
-        isVerified: true,
-        verificationStatus: "approved",
-        profileCompleted: true,
-        _id: { $nin: busyRiderIds }
-    }).sort({ rating: -1, totalRides: -1 }); // Best rated first
+    if (candidates.length === 0) {
+        throw new Error("No approved riders found in the interested list.");
+    }
 
-    if (!matchedRider) throw new Error("No available rider found for this city and language.");
+    // 4. Pick the winner
+    const bestRider = candidates[0];
 
-    booking.riderId = matchedRider._id;
+    // 5. Generate OTP and Assign
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    booking.riderId = bestRider._id;
     booking.bookingStatus = "assigned";
     booking.assignmentStatus = "rider_selected";
+    booking.rideOTP = otp;
+    
     await booking.save();
 
-    return { booking, assignedRider: matchedRider };
+    return { booking, assignedRider: bestRider };
 };
 
 
