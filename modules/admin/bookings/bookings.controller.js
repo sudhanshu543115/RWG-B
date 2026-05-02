@@ -9,6 +9,7 @@ import {
     toggleAutoAssignService
 
 } from "./bookings.service.js";
+import { notifyTouristRiderAssigned } from "../../../core/socket.events.js";
 
 
 
@@ -51,6 +52,7 @@ export const deleteBookingController = async (req, res) => {
 export const assignRiderToBookingController = async (req, res) => {
     try {
         const { riderId } = req.body;
+        console.log("🚀 ASSIGN RIDER API CALLED:", { bookingId: req.params.id, riderId });
 
         // Check if rider is verified before assigning
         const Rider = (await import("../../../models/rider/Rider.js")).default;
@@ -68,7 +70,9 @@ export const assignRiderToBookingController = async (req, res) => {
         }
 
         // Assign rider and auto-confirm booking
+        console.log("📞 CALLING assignRiderToBooking service...");
         const booking = await assignRiderToBooking(req.params.id, riderId);
+        console.log("✅ assignRiderToBooking completed. Booking:", booking._id);
 
         res.status(200).json({ success: true, message: "Rider assigned & booking confirmed.", data: booking });
     } catch (error) {
@@ -82,7 +86,14 @@ export const assignRiderToBookingController = async (req, res) => {
 
 export const autoAssignRiderController = async (req, res) => {
     try {
+        console.log("🚀 AUTO ASSIGN API CALLED:", { bookingId: req.params.id });
         const { booking, assignedRider } = await autoAssignRiderService(req.params.id);
+        
+        // Notify tourist about the assignment
+        console.log("🎯 CALLING notifyTouristRiderAssigned from autoAssignRiderController...");
+        notifyTouristRiderAssigned(booking, assignedRider);
+        console.log("✅ Notification sent in autoAssignRiderController");
+        
         res.status(200).json({ 
             success: true, 
             message: `Auto-assigned to ${assignedRider.name} (${assignedRider.city})`,

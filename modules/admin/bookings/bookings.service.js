@@ -2,6 +2,7 @@ import Booking from "../../../models/tourist/Booking.js";
 import User from "../../../models/tourist/User.js";
 import Rider from "../../../models/rider/Rider.js";
 import Settings from "../../../models/admin/Setting.js";
+import { notifyTouristRiderAssigned } from "../../../core/socket.events.js";
 
 
 export const getAllBookings = async () => {
@@ -48,7 +49,8 @@ export const deleteBooking = async (id) => {
 
 
 export const assignRiderToBooking = async (id, riderId) => {
-    // Generate a 4-digit OTP
+    console.log("📥 assignRiderToBooking service called with:", { bookingId: id, riderId });
+    
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
     const booking = await Booking.findByIdAndUpdate(
@@ -60,15 +62,25 @@ export const assignRiderToBooking = async (id, riderId) => {
             rideOTP: otp
         }, 
         { new: true }
-    );
-    return booking;
-}
+    ).populate("touristId").populate("riderId"); // 🔥 IMPORTANT
 
+    if (!booking) throw new Error("Booking not found");
+
+    console.log("🚀 EMIT RIDER ASSIGNED - booking populated:", { bookingId: booking._id, touristId: booking.touristId, riderId: booking.riderId._id });
+
+    // 🔥 EMIT TO TOURIST
+    console.log("🎯 CALLING notifyTouristRiderAssigned...");
+    notifyTouristRiderAssigned(booking, booking.riderId);
+    console.log("✅ notifyTouristRiderAssigned completed");
+
+    return booking;
+};
 
 export const autoAssignRiderService = async (bookingId) => {
     // 1. Find the booking and populate the interested riders' full details
     const booking = await Booking.findById(bookingId)
-        .populate("interestedRiders.riderId", "name rating totalRides isVerified verificationStatus profileCompleted city languages");
+        .populate("interestedRiders.riderId", "name rating totalRides isVerified verificationStatus profileCompleted city languages")
+        .populate("touristId"); // 👈 IMPORTANT: Populate touristId for notification
     
     if (!booking) throw new Error("Booking not found.");
     if (booking.riderId) throw new Error("Rider already assigned to this booking.");

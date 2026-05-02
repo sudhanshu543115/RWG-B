@@ -76,22 +76,47 @@ function notifyAdminRiderInterested(booking, rider) {
     console.error("❌ Admin notify error:", error.message);
   }
 }
+function notifyTouristRiderAssigned(booking, rider) {
+  try {
+    console.log("🔍 NOTIFYING TOURIST - booking.touristId:", booking.touristId);
+    console.log("🔍 NOTIFYING TOURIST - rider:", rider.name, rider._id);
 
-// // ✅ THIS MUST EXIST AS NAMED EXPORT
-// function notifyAllRidersNewBooking(booking) {
-//   try {
-//     emitToRoom(
-//       "riders_online",
-//       SOCKET_EVENTS.BOOKING_NEW_REQUEST,
-//       {
-//         message: "New booking request available",
-//         booking
-//       }
-//     );
-//   } catch (error) {
-//     console.error("Socket emit error:", error.message);
-//   }
-// }
+    // Handle both populated and non-populated touristId
+    let touristId;
+    if (booking.touristId && typeof booking.touristId === 'object') {
+      touristId = booking.touristId._id?.toString();
+    } else {
+      touristId = booking.touristId?.toString();
+    }
+
+    if (!touristId) {
+      throw new Error("Tourist ID not found in booking");
+    }
+
+    console.log("✅ EXTRACTED TOURIST ID:", touristId);
+
+    const payload = {
+      bookingId: booking._id,
+      riderId: rider._id,
+      riderName: rider.name,
+      riderPhone: rider.phone,
+      message: `Your ride has been assigned to ${rider.name}`
+    };
+
+    console.log("📤 EMITTING TO ROOM:", `tourist:${touristId}`, payload);
+    emitToRoom(
+      `tourist:${touristId}`,
+      "rider-assigned",
+      payload
+    );
+
+    console.log("📡 NOTIFIED TOURIST:", touristId);
+  } catch (error) {
+    console.error("❌ Tourist notify error:", error.message);
+    console.error("❌ Stack:", error.stack);
+  }
+}
+
 
 // ✅ IMPORTANT PART (this fixes your error)
 export {
@@ -99,4 +124,5 @@ export {
   getIO,
   notifyAdminRiderInterested,
   notifyMatchedRidersNewBooking,
+    notifyTouristRiderAssigned // 👈 ADD THIS
 };
