@@ -1,5 +1,6 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Rider from "../../../models/rider/Rider.js";
+import { notifyAdminRiderInterested } from "../../../core/socket.events.js";
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
@@ -74,10 +75,18 @@ export const expressInterestService = async (riderId, bookingId) => {
     );
     if (alreadyInterested) throw new Error("You already expressed interest.");
 
+    // 🔥 GET RIDER (THIS WAS MISSING)
+    const rider = await Rider.findById(riderId);
+    if (!rider) throw new Error("Rider not found.");
+
     booking.interestedRiders.push({ riderId, interestedAt: new Date() });
     await booking.save();
 
-    // Return with rider names populated
+    console.log("🚀 EMITTING ADMIN EVENT");
+
+    // ✅ EMIT TO ADMIN
+    notifyAdminRiderInterested(booking, rider);
+
     const populatedBooking = await Booking.findById(bookingId)
         .populate("interestedRiders.riderId", "name phone city rating");
 

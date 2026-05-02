@@ -59,6 +59,24 @@ async function notifyMatchedRidersNewBooking(booking) {
   }
 }
 
+function notifyAdminRiderInterested(booking, rider) {
+  try {
+    emitToRoom(
+      "admin", // 👈 admin room
+      "rider-interested",
+      {
+        bookingId: booking._id,
+        riderId: rider._id,
+        riderName: rider.name,
+        city: booking.city,
+        message: `${rider.name} showed interest in booking`
+      }
+    );
+  } catch (error) {
+    console.error("❌ Admin notify error:", error.message);
+  }
+}
+
 // // ✅ THIS MUST EXIST AS NAMED EXPORT
 // function notifyAllRidersNewBooking(booking) {
 //   try {
@@ -79,6 +97,6 @@ async function notifyMatchedRidersNewBooking(booking) {
 export {
   initSocketEvents,
   getIO,
-  // notifyAllRidersNewBooking,
+  notifyAdminRiderInterested,
   notifyMatchedRidersNewBooking,
 };
