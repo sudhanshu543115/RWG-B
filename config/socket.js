@@ -35,7 +35,13 @@ export const initSocket = (server) => {
         socket.join(`tourist:${userId}`);
         console.log(`✅ Tourist joined room: tourist:${userId}`);
       }
+       if (role === "admin") {
+      socket.join("admin");
+      console.log("✅ ADMIN REGISTERED & JOINED ROOM");
+    }
+  
     });
+    
 
      socket.on("join-city", (city) => {
             socket.join(city.toLowerCase());

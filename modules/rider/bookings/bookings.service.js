@@ -1,5 +1,6 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Rider from "../../../models/rider/Rider.js";
+import { notifyAdminRiderInterested } from "../../../core/socket.events.js";
 import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
 
@@ -76,8 +77,17 @@ export const expressInterestService = async (riderId, bookingId) => {
     );
     if (alreadyInterested) throw new Error("You already expressed interest.");
 
+    // 🔥 GET RIDER (THIS WAS MISSING)
+    const rider = await Rider.findById(riderId);
+    if (!rider) throw new Error("Rider not found.");
+
     booking.interestedRiders.push({ riderId, interestedAt: new Date() });
     await booking.save();
+
+    console.log("🚀 EMITTING ADMIN EVENT");
+
+    // ✅ EMIT TO ADMIN
+    notifyAdminRiderInterested(booking, rider);
 
     // --- NEW: Automatic Best-Match Trigger ---
     try {
