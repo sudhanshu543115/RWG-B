@@ -1,6 +1,8 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Rider from "../../../models/rider/Rider.js";
 import { notifyAdminRiderInterested } from "../../../core/socket.events.js";
+import Settings from "../../../models/admin/Setting.js";
+import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
@@ -87,6 +89,18 @@ export const expressInterestService = async (riderId, bookingId) => {
     // ✅ EMIT TO ADMIN
     notifyAdminRiderInterested(booking, rider);
 
+    // --- NEW: Automatic Best-Match Trigger ---
+    try {
+        const settings = await Settings.findOne();
+        if (settings?.autoAssign && booking.interestedRiders.length >= 2) {
+            console.log("Auto-assign triggered: 2 riders interested.");
+            await autoAssignRiderService(bookingId);
+        }
+    } catch (err) {
+        console.error("Auto-assign background error:", err.message);
+    }
+
+    // Return with rider names populated
     const populatedBooking = await Booking.findById(bookingId)
         .populate("interestedRiders.riderId", "name phone city rating");
 
