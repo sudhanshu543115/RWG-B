@@ -2,7 +2,7 @@ import Booking from "../../../models/tourist/Booking.js";
 import User from "../../../models/tourist/User.js";
 import Rider from "../../../models/rider/Rider.js";
 import Settings from "../../../models/admin/Setting.js";
-import { notifyTouristRiderAssigned } from "../../../core/socket.events.js";
+import { notifyTouristRiderAssigned , notifyRiderAssigned} from "../../../core/socket.events.js";
 
 
 export const getAllBookings = async () => {
@@ -71,6 +71,8 @@ export const assignRiderToBooking = async (id, riderId) => {
     // 🔥 EMIT TO TOURIST
     console.log("🎯 CALLING notifyTouristRiderAssigned...");
     notifyTouristRiderAssigned(booking, booking.riderId);
+    // 🔥 EMIT TO RIDER
+notifyRiderAssigned(booking, booking.riderId);
     console.log("✅ notifyTouristRiderAssigned completed");
 
     return booking;
