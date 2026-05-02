@@ -116,6 +116,31 @@ function notifyTouristRiderAssigned(booking, rider) {
     console.error("❌ Stack:", error.stack);
   }
 }
+function notifyRiderAssigned(booking, rider) {
+  try {
+    const payload = {
+      bookingId: booking._id,
+      city: booking.city,
+      date: booking.date,
+      startTime: booking.startTime,
+      durationType: booking.durationType,
+      touristName: booking.touristId?.name,
+      message: `You have been assigned for this ride in ${booking.city}`
+    };
+
+    console.log("📤 EMITTING TO RIDER:", `rider:${rider._id}`, payload);
+
+    emitToRoom(
+      `rider:${rider._id}`,
+      "ride-assigned",   // 👈 event name
+      payload
+    );
+
+    console.log("📡 NOTIFIED RIDER:", rider._id);
+  } catch (error) {
+    console.error("❌ Rider notify error:", error.message);
+  }
+}
 
 
 // ✅ IMPORTANT PART (this fixes your error)
@@ -124,5 +149,6 @@ export {
   getIO,
   notifyAdminRiderInterested,
   notifyMatchedRidersNewBooking,
-    notifyTouristRiderAssigned // 👈 ADD THIS
+    notifyTouristRiderAssigned ,
+     notifyRiderAssigned // 👈 ADD THIS
 };
