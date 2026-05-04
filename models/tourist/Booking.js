@@ -146,15 +146,15 @@ const bookingSchema = new mongoose.Schema({
   },
 
 
-  
-interestedRiders: [{
+
+  interestedRiders: [{
     riderId: { type: mongoose.Schema.Types.ObjectId, ref: "Rider" },
     interestedAt: { type: Date, default: Date.now }
-}],
-rejectedRiders: [{
+  }],
+  rejectedRiders: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Rider"
-}],
+  }],
 
 
 

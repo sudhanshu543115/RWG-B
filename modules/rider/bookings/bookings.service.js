@@ -154,3 +154,14 @@ export const getMyBookingsService = async (riderId) => {
         .sort({ createdAt: -1 });
     return bookings;
 };
+
+export const getBookingByIdService = async (bookingId, riderId) => {
+    const booking = await Booking.findOne({ _id: bookingId, riderId })
+        .populate("touristId", "name phone profileImage")
+        .select("-interestedRiders -rejectedRiders");
+
+    if (!booking) {
+        throw new Error("Booking not found or you are not authorized to view it.");
+    }
+    return booking;
+};
