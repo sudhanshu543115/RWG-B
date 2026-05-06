@@ -1,7 +1,5 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Settings from "../../../models/admin/Setting.js";
-import Rider from "../../../models/rider/Rider.js";
-import { getIO } from "../../../config/socket.js";
 
 export const createBookingService = async (userId, bookingData) => {
     const {
@@ -26,29 +24,13 @@ export const createBookingService = async (userId, bookingData) => {
         pricing,
         payment: {
             ...payment,
-            status: "paid" // Force payment status to 'paid' inside the object
+            status: "pending"
         },
-        bookingStatus: "searching", // Broadcast to riders
-        assignmentStatus: "waiting_for_riders"
+        bookingStatus: "pending", 
+        assignmentStatus: "not_assigned"
     });
 
     await newBooking.save();
-    
-
-    // Emit to all riders in that city
-    try {
-        const io = getIO();
-        io.to(newBooking.city.toLowerCase()).emit("new-booking", {
-            bookingId: newBooking._id,
-            city: newBooking.city,
-            date: newBooking.date,
-            startTime: newBooking.startTime,
-            durationType: newBooking.durationType,
-            message: `New ${newBooking.durationType} tour request in ${newBooking.city}!`
-        });
-    } catch (err) {
-        console.error("Socket emit error:", err.message);
-    }
 
     // // Auto-assign rider if toggle is ON
     // try {
@@ -114,6 +96,7 @@ export const createBookingService = async (userId, bookingData) => {
 
 export const getBookingsService = async (userId) => {
     const bookings = await Booking.find({ touristId: userId })
+        .populate("riderId", "name phone profileImage vehicleModel vehicleNumber vehicleType rating")
         .select("-interestedRiders -rejectedRiders")
         .sort({ createdAt: -1 });
     return bookings;
@@ -121,6 +104,7 @@ export const getBookingsService = async (userId) => {
 
 export const getBookingByIdService = async (userId, bookingId) => {
     const booking = await Booking.findOne({ touristId: userId, _id: bookingId })
+        .populate("riderId", "name phone profileImage vehicleModel vehicleNumber vehicleType rating")
         .select("-interestedRiders -rejectedRiders");
     if (!booking) {
         throw new Error("Booking not found.");

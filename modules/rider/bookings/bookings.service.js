@@ -1,55 +1,51 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Rider from "../../../models/rider/Rider.js";
+import { notifyAdminRiderInterested } from "../../../core/socket.events.js";
+import Settings from "../../../models/admin/Setting.js";
+import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
-  const rider = await Rider.findById(riderId);
+    const rider = await Rider.findById(riderId);
 
-  if (!rider) {
-    throw new Error("Rider not found.");
-  }
+    if (!rider) {
+        throw new Error("Rider not found.");
+    }
 
-  // only approved rider
-  if (rider.verificationStatus !== "approved") {
-    return [];
-  }
+    // Only approved riders can see bookings
+    if (rider.verificationStatus !== "approved") {
+        return [];
+    }
 
-  const query = {
-    bookingStatus: "searching",
+    const query = {
+        bookingStatus: "searching",
 
-    // city match (case insensitive)
-    city: {
-      $regex: rider.city.trim(),
-      $options: "i",
-    },
+        // city match (case insensitive)
+        city: {
+            $regex: rider.city.trim(),
+            $options: "i",
+        },
 
-    // booking not accepted yet
-    $or: [
-      { riderId: null },
-      { riderId: { $exists: false } },
-    ],
+        // booking not accepted yet
+        $or: [
+            { riderId: null },
+            { riderId: { $exists: false } },
+        ],
 
-    // rejected rider not included
-    rejectedRiders: {
-      $nin: [rider._id],
-    },
-  };
-
-  // multiple languages match
-  if (rider.languages && rider.languages.length > 0) {
-    query.language = {
-      $in: rider.languages.map(
-        (lang) => new RegExp(lang.trim(), "i")
-      ),
+        // rejected rider not included
+        rejectedRiders: {
+            $nin: [rider._id],
+        },
     };
-  }
 
-  // gender preference filter
-  if (rider.gender === "Male") {
-    query.genderPreference = {
-      $ne: "Female guide preferred",
-    };
-  }
+    // multiple languages match
+    if (rider.languages && rider.languages.length > 0) {
+        query.language = {
+            $in: rider.languages.map(
+                (lang) => new RegExp(lang.trim(), "i")
+            ),
+        };
+    }
 
   if (rider.gender === "Female") {
     query.genderPreference = {
@@ -66,8 +62,23 @@ export const getPendingBookingsForRider = async (riderId) => {
     .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
     .sort({ createdAt: -1 });
   console.log("Bookings Found:", bookings.length);
+    // gender preference filter
+    if (rider.gender === "Male") {
+        query.genderPreference = {
+            $ne: "Female guide preferred",
+        };
+    } else if (rider.gender === "Female") {
+        query.genderPreference = {
+            $ne: "Male guide preferred",
+        };
+    }
 
-  return bookings;
+    const bookings = await Booking.find(query)
+        .populate("touristId", "name phone profileImage")
+        .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
+        .sort({ createdAt: -1 });
+
+    return bookings;
 };
 
 // Rider clicks "Interested"
@@ -81,8 +92,28 @@ export const expressInterestService = async (riderId, bookingId) => {
     );
     if (alreadyInterested) throw new Error("You already expressed interest.");
 
+    // 🔥 GET RIDER (THIS WAS MISSING)
+    const rider = await Rider.findById(riderId);
+    if (!rider) throw new Error("Rider not found.");
+
     booking.interestedRiders.push({ riderId, interestedAt: new Date() });
     await booking.save();
+
+    console.log("🚀 EMITTING ADMIN EVENT");
+
+    // ✅ EMIT TO ADMIN
+    notifyAdminRiderInterested(booking, rider);
+
+    // --- NEW: Automatic Best-Match Trigger ---
+    try {
+        const settings = await Settings.findOne();
+        if (settings?.autoAssign && booking.interestedRiders.length >= 2) {
+            console.log("Auto-assign triggered: 2 riders interested.");
+            await autoAssignRiderService(bookingId);
+        }
+    } catch (err) {
+        console.error("Auto-assign background error:", err.message);
+    }
 
     // Return with rider names populated
     const populatedBooking = await Booking.findById(bookingId)
@@ -103,12 +134,16 @@ export const rejectBookingService = async (riderId, bookingId) => {
     return booking;
 };
 
-
-// Start the ride
-export const startRideService = async (riderId, bookingId) => {
+// Start the ride with OTP verification
+export const startRideService = async (riderId, bookingId, enteredOtp) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId });
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "assigned") throw new Error("Booking must be assigned to start.");
+
+    // Verify OTP
+    if (booking.rideOTP !== enteredOtp) {
+        throw new Error("Invalid OTP. Please ask the tourist for the correct code.");
+    }
 
     booking.bookingStatus = "ongoing";
     await booking.save();
@@ -121,7 +156,7 @@ export const completeRideService = async (riderId, bookingId) => {
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "ongoing") throw new Error("Only ongoing rides can be completed.");
 
-    booking.bookingStatus = "completed"; 
+    booking.bookingStatus = "completed";
     await booking.save();
     return booking;
 };
@@ -131,6 +166,17 @@ export const getMyBookingsService = async (riderId) => {
     const bookings = await Booking.find({ riderId })
         .populate("touristId", "name phone profileImage")
         .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
-        .sort({ updatedAt: -1 });
+        .sort({ createdAt: -1 });
     return bookings;
+};
+
+export const getBookingByIdService = async (bookingId, riderId) => {
+    const booking = await Booking.findOne({ _id: bookingId, riderId })
+        .populate("touristId", "name phone profileImage")
+        .select("-interestedRiders -rejectedRiders");
+
+    if (!booking) {
+        throw new Error("Booking not found or you are not authorized to view it.");
+    }
+    return booking;
 };

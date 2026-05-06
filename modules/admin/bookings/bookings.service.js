@@ -2,6 +2,7 @@ import Booking from "../../../models/tourist/Booking.js";
 import User from "../../../models/tourist/User.js";
 import Rider from "../../../models/rider/Rider.js";
 import Settings from "../../../models/admin/Setting.js";
+import { notifyTouristRiderAssigned , notifyRiderAssigned} from "../../../core/socket.events.js";
 
 
 export const getAllBookings = async () => {
@@ -9,6 +10,7 @@ export const getAllBookings = async () => {
         .populate("touristId")
         .populate("riderId")
         .populate("interestedRiders.riderId", "name phone city rating")
+        .sort({ createdAt: -1 })
         .lean();
 
     // Add counts
@@ -47,47 +49,77 @@ export const deleteBooking = async (id) => {
 
 
 export const assignRiderToBooking = async (id, riderId) => {
+    console.log("📥 assignRiderToBooking service called with:", { bookingId: id, riderId });
+    
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
     const booking = await Booking.findByIdAndUpdate(
         id, 
         { 
             riderId: riderId, 
             bookingStatus: "assigned",
-            assignmentStatus: "admin_assigned"
+            assignmentStatus: "admin_assigned",
+            rideOTP: otp
         }, 
         { new: true }
-    );
-    return booking;
-}
+    ).populate("touristId").populate("riderId"); // 🔥 IMPORTANT
 
+    if (!booking) throw new Error("Booking not found");
+
+    console.log("🚀 EMIT RIDER ASSIGNED - booking populated:", { bookingId: booking._id, touristId: booking.touristId, riderId: booking.riderId._id });
+
+    // 🔥 EMIT TO TOURIST
+    console.log("🎯 CALLING notifyTouristRiderAssigned...");
+    notifyTouristRiderAssigned(booking, booking.riderId);
+    // 🔥 EMIT TO RIDER
+notifyRiderAssigned(booking, booking.riderId);
+    console.log("✅ notifyTouristRiderAssigned completed");
+
+    return booking;
+};
 
 export const autoAssignRiderService = async (bookingId) => {
-    const booking = await Booking.findById(bookingId);
+    // 1. Find the booking and populate the interested riders' full details
+    const booking = await Booking.findById(bookingId)
+        .populate("interestedRiders.riderId", "name rating totalRides isVerified verificationStatus profileCompleted city languages")
+        .populate("touristId"); // 👈 IMPORTANT: Populate touristId for notification
+    
     if (!booking) throw new Error("Booking not found.");
     if (booking.riderId) throw new Error("Rider already assigned to this booking.");
+    
+    // 2. Check if anyone has expressed interest
+    if (!booking.interestedRiders || booking.interestedRiders.length === 0) {
+        throw new Error("No riders have expressed interest in this booking yet. Cannot auto-assign.");
+    }
 
-    // Find best matching rider: same city, speaks the language, verified, and not already busy
-    const busyRiderIds = await Booking.find({
-        bookingStatus: { $in: ["assigned", "ongoing"] },
-        riderId: { $ne: null }
-    }).distinct("riderId");
+    // 3. Filter and Sort the interested riders to find the best match
+    // We sort by rating (highest first) and then by total rides
+    const candidates = booking.interestedRiders
+        .map(item => item.riderId)
+        .filter(rider => rider.verificationStatus === "approved" && rider.profileCompleted === true)
+        .sort((a, b) => {
+            if (b.rating !== a.rating) return b.rating - a.rating;
+            return b.totalRides - a.totalRides;
+        });
 
-    const matchedRider = await Rider.findOne({
-        city: { $regex: new RegExp(`^${booking.city}$`, "i") },
-        languages: booking.language,
-        isVerified: true,
-        verificationStatus: "approved",
-        profileCompleted: true,
-        _id: { $nin: busyRiderIds }
-    }).sort({ rating: -1, totalRides: -1 }); // Best rated first
+    if (candidates.length === 0) {
+        throw new Error("No approved riders found in the interested list.");
+    }
 
-    if (!matchedRider) throw new Error("No available rider found for this city and language.");
+    // 4. Pick the winner
+    const bestRider = candidates[0];
 
-    booking.riderId = matchedRider._id;
+    // 5. Generate OTP and Assign
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    booking.riderId = bestRider._id;
     booking.bookingStatus = "assigned";
     booking.assignmentStatus = "rider_selected";
+    booking.rideOTP = otp;
+    
     await booking.save();
 
-    return { booking, assignedRider: matchedRider };
+    return { booking, assignedRider: bestRider };
 };
 
 
