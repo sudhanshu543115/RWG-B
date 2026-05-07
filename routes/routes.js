@@ -14,6 +14,7 @@ import adminAuthRoutes from "../modules/admin/auth/auth.routes.js";
 import adminRiderRoutes from "../modules/admin/riders/riders.routes.js";
 import adminBookingRoutes from "../modules/admin/bookings/bookings.routes.js";
 import adminTouristRoutes from "../modules/admin/tourists/tourists.routes.js";
+
 const router = express.Router();
 
 // Tourist Routes

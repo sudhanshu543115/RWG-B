@@ -70,10 +70,20 @@ export const startRide = async (req, res) => {
     }
 };
 
+
+
 export const completeRide = async (req, res) => {
     try {
-        const booking = await completeRideService(req.user._id, req.params.id);
-        res.status(200).json({ success: true, message: "Ride completed!", data: booking });
+const { booking, paymentLink, remainingAmount } = 
+    await completeRideService(req.user._id, req.params.id);
+
+res.status(200).json({
+    success: true,
+    message: "Ride completed!",
+    data: booking,
+    paymentLink,        // ✅ frontend ko milega
+    remainingAmount
+});
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
