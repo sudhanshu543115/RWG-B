@@ -3,6 +3,7 @@ import Rider from "../../../models/rider/Rider.js";
 import { notifyAdminRiderInterested } from "../../../core/socket.events.js";
 import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
+import Razorpay from 'razorpay';
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
@@ -117,6 +118,7 @@ export const rejectBookingService = async (riderId, bookingId) => {
     }
     await booking.save();
     return booking;
+
 };
 
 // Start the ride with OTP verification
@@ -124,6 +126,7 @@ export const startRideService = async (riderId, bookingId, enteredOtp) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId });
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "assigned") throw new Error("Booking must be assigned to start.");
+
 
     // Verify OTP
     if (booking.rideOTP !== enteredOtp) {
@@ -135,7 +138,8 @@ export const startRideService = async (riderId, bookingId, enteredOtp) => {
     return booking;
 };
 
-// Complete the ride
+
+
 export const completeRideService = async (riderId, bookingId) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId });
     if (!booking) throw new Error("Booking not found or not assigned to you.");
@@ -164,4 +168,6 @@ export const getBookingByIdService = async (bookingId, riderId) => {
         throw new Error("Booking not found or you are not authorized to view it.");
     }
     return booking;
+
+
 };
