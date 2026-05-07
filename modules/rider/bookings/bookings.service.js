@@ -3,6 +3,7 @@ import Rider from "../../../models/rider/Rider.js";
 import { notifyAdminRiderInterested } from "../../../core/socket.events.js";
 import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
+import razorpay from "../../../config/razorpay.js";
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
@@ -151,14 +152,54 @@ export const startRideService = async (riderId, bookingId, enteredOtp) => {
 };
 
 // Complete the ride
+
+
+
+
 export const completeRideService = async (riderId, bookingId) => {
-    const booking = await Booking.findOne({ _id: bookingId, riderId });
+    const booking = await Booking.findOne({ _id: bookingId, riderId })
+        .populate("touristId", "name phone");
+    
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "ongoing") throw new Error("Only ongoing rides can be completed.");
 
+    const total = booking.pricing?.guideServiceFee || 0;
+    const advance = booking.pricing?.advanceAmount || 0;
+    const remaining = Math.max(total - advance, 0);
+console.log("TOTAL:", total);
+console.log("ADVANCE:", advance);
+console.log("REMAINING:", remaining);
+    let paymentLink = null;
+    let paymentLinkId = null;
+
+    if (remaining > 0) {
+        const response = await razorpay.paymentLink.create({
+            amount: Math.round(remaining * 100),
+            currency: "INR",
+            description: `Trip remaining fare`,
+            customer: {
+                name: booking.touristId?.name || "Tourist",
+                contact: booking.touristId?.phone || ""
+            },
+            notify: { sms: false, email: false },
+            reminder_enable: false,
+            notes: {
+                bookingId: bookingId.toString()
+            }
+        });
+
+        paymentLink = response.short_url;
+        paymentLinkId = response.id;
+
+        booking.payment.remainingOrderId = paymentLinkId;
+        booking.payment.remainingAmount = remaining;
+        booking.payment.status = "partial_paid";
+    }
+
     booking.bookingStatus = "completed";
     await booking.save();
-    return booking;
+
+    return { booking, paymentLink, paymentLinkId, remainingAmount: remaining };
 };
 
 // Get all bookings assigned to this rider (Assigned, Ongoing, Completed)

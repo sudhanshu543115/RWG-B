@@ -17,6 +17,7 @@ const bookingSchema = new mongoose.Schema({
     ref: "User",
     required: true
   },
+  
 
   // This is the "Guide" assigned to the booking. 
   // In the folder structure, these are referred to as "Riders".
@@ -105,6 +106,8 @@ const bookingSchema = new mongoose.Schema({
       default: "pending"
     },
     amountPaid: { type: Number, default: 0 },
+    remainingOrderId: { type: String },
+    remainingAmount: { type: Number, default: 0 },
     paidAt: Date
   },
 
