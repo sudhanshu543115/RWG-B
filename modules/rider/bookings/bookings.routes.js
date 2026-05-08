@@ -7,7 +7,8 @@ import {
     getMyBookings,
     startRide,
     completeRide,
-    getBookingById
+    getBookingById,
+    verifyPaymentAndComplete
 } from "./bookings.controller.js";
 import razorpay from "../../../config/razorpay.js";
 const router = express.Router();
