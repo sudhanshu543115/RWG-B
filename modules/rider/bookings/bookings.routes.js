@@ -1,8 +1,8 @@
 import express from "express";
 import { protectRider } from "../../../middleware/auth.middleware.js";
-import { 
-    getPendingBookings, 
-    expressInterest, 
+import {
+    getPendingBookings,
+    expressInterest,
     rejectBooking,
     getMyBookings,
     startRide,
@@ -54,6 +54,8 @@ router.post("/:id/interested", expressInterest);
 router.post("/:id/reject", rejectBooking);
 router.patch("/:id/start", startRide);
 router.patch("/:id/complete", completeRide);
+
+router.patch("/:id/verify-payment", verifyPaymentAndComplete);
 
 
 
