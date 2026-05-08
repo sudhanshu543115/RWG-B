@@ -153,9 +153,7 @@ export const completeRideService = async (riderId, bookingId) => {
     const total = booking.pricing?.guideServiceFee || 0;
     const advance = booking.pricing?.advanceAmount || 0;
     const remaining = Math.max(total - advance, 0);
-console.log("TOTAL:", total);
-console.log("ADVANCE:", advance);
-console.log("REMAINING:", remaining);
+
     let paymentLink = null;
     let paymentLinkId = null;
 
@@ -180,13 +178,42 @@ console.log("REMAINING:", remaining);
 
         booking.payment.remainingOrderId = paymentLinkId;
         booking.payment.remainingAmount = remaining;
-        booking.payment.status = "partial_paid";
+    } else {
+        booking.bookingStatus = "completed";
     }
 
-    booking.bookingStatus = "completed";
     await booking.save();
 
     return { booking, paymentLink, paymentLinkId, remainingAmount: remaining };
+};
+
+export const verifyAndCompleteRideService = async (riderId, bookingId) => {
+    const booking = await Booking.findOne({ _id: bookingId, riderId });
+    if (!booking) throw new Error("Booking not found.");
+
+    if (booking.bookingStatus === "completed") return booking;
+
+    const paymentLinkId = booking.payment.remainingOrderId;
+    
+    // If no payment link exists, it means remaining was 0, so just complete it
+    if (!paymentLinkId) {
+        booking.bookingStatus = "completed";
+        await booking.save();
+        return booking;
+    }
+
+    // Verify with Razorpay
+    const paymentLink = await razorpay.paymentLink.fetch(paymentLinkId);
+
+    if (paymentLink.status === 'paid') {
+        booking.bookingStatus = "completed";
+        booking.payment.status = "paid";
+        booking.payment.paidAt = new Date();
+        await booking.save();
+        return booking;
+    } else {
+        throw new Error("Payment is not yet completed by the tourist.");
+    }
 };
 
 // Get all bookings assigned to this rider (Assigned, Ongoing, Completed)

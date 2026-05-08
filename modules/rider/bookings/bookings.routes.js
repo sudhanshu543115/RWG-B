@@ -7,6 +7,7 @@ import {
     getMyBookings,
     startRide,
     completeRide,
+    verifyPaymentAndComplete,
     getBookingById
 } from "./bookings.controller.js";
 import razorpay from "../../../config/razorpay.js";
@@ -54,6 +55,7 @@ router.post("/:id/interested", expressInterest);
 router.post("/:id/reject", rejectBooking);
 router.patch("/:id/start", startRide);
 router.patch("/:id/complete", completeRide);
+router.patch("/:id/verify-payment", verifyPaymentAndComplete);
 
 
 
