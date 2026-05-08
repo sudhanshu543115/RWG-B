@@ -9,7 +9,6 @@ import { notifyMatchedRidersNewBooking, notifyRidersBookingCancelled, notifyAdmi
 export const createBooking = async (req, res) => {
     try {
         const booking = await createBookingService(req.user._id, req.body);
-        await notifyMatchedRidersNewBooking(booking);
         return res.status(201).json({
             success: true,
             message: "Booking created successfully.",

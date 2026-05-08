@@ -209,7 +209,8 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
 
     if (paymentLink.status === 'paid') {
         booking.bookingStatus = "completed";
-        booking.payment.status = "paid";
+        booking.payment.status = "paid"; // Final 100% status
+        booking.payment.amountPaid = (booking.payment.amountPaid || 0) + (booking.payment.remainingAmount || 0);
         booking.payment.paidAt = new Date();
         await booking.save();
         return booking;
