@@ -48,6 +48,21 @@ export const getPendingBookingsForRider = async (riderId) => {
         };
     }
 
+  if (rider.gender === "Female") {
+    query.genderPreference = {
+      $ne: "Male guide preferred",
+    };
+  }
+
+  console.log("Rider:", rider.name);
+  console.log("Query:", query);
+
+
+  const bookings = await Booking.find(query)
+    .populate("touristId", "name phone profileImage")
+    .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
+    .sort({ createdAt: -1 });
+  console.log("Bookings Found:", bookings.length);
     // gender preference filter
     if (rider.gender === "Male") {
         query.genderPreference = {
