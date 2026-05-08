@@ -51,9 +51,9 @@ export const verifyRazorpayPayment = async (razorpayOrderId, razorpayPaymentId, 
     // Update the payment sub-object correctly
     booking.payment = {
         ...booking.payment,
-        status: "paid",
+        status: "partial_paid", // Initial 30% advance
         method: payment.method === "card" ? "Card" : (payment.method === "upi" ? "UPI" : "Net Banking"),
-        amountPaid: payment.amount / 100,
+        amountPaid: (booking.payment.amountPaid || 0) + (payment.amount / 100),
         transactionId: razorpayPaymentId,
         paidAt: new Date()
     };
