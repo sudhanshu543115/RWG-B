@@ -150,7 +150,7 @@ export const completeRideService = async (riderId, bookingId) => {
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "ongoing") throw new Error("Only ongoing rides can be completed.");
 
-    const total = booking.pricing?.guideServiceFee || 0;
+    const total = booking.pricing?.totalAmount || 0;
     const advance = booking.pricing?.advanceAmount || 0;
     const remaining = Math.max(total - advance, 0);
 
