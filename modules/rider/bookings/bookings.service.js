@@ -118,6 +118,7 @@ export const rejectBookingService = async (riderId, bookingId) => {
     }
     await booking.save();
     return booking;
+
 };
 
 // Start the ride with OTP verification
@@ -125,6 +126,7 @@ export const startRideService = async (riderId, bookingId, enteredOtp) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId });
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "assigned") throw new Error("Booking must be assigned to start.");
+
 
     // Verify OTP
     if (booking.rideOTP !== enteredOtp) {
@@ -205,4 +207,6 @@ export const getBookingByIdService = async (bookingId, riderId) => {
         throw new Error("Booking not found or you are not authorized to view it.");
     }
     return booking;
+
+
 };

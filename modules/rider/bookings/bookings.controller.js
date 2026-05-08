@@ -1,6 +1,6 @@
-import { 
-    getPendingBookingsForRider, 
-    expressInterestService, 
+import {
+    getPendingBookingsForRider,
+    expressInterestService,
     rejectBookingService,
     getMyBookingsService,
     startRideService,
