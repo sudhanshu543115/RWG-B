@@ -94,6 +94,8 @@ export const createBookingService = async (userId, bookingData) => {
 
 
 
+
+
 export const getBookingsService = async (userId) => {
     const bookings = await Booking.find({ touristId: userId })
         .populate("riderId", "name phone profileImage vehicleModel vehicleNumber vehicleType rating")
