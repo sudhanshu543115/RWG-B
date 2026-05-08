@@ -55,6 +55,8 @@ router.post("/:id/reject", rejectBooking);
 router.patch("/:id/start", startRide);
 router.patch("/:id/complete", completeRide);
 
+router.patch("/:id/verify-payment", verifyPaymentAndComplete);
+
 
 
 
