@@ -119,6 +119,11 @@ export const cancelBookingService = async (userId, bookingId) => {
         throw new Error("Booking not found.");
     }
 
+    // Prevents proceeding if ride has already started or finished
+    if (["ongoing", "completed"].includes(booking.bookingStatus)) {
+        throw new Error(`Cannot cancel an ${booking.bookingStatus} ride.`);
+    }
+
     if (booking.bookingStatus === "cancelled") {
         throw new Error("Booking is already cancelled.");
     }
