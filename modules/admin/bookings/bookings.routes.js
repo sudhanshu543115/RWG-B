@@ -20,7 +20,7 @@ router.patch("/settings/auto-assign", toggleAutoAssign);
 
 router.get("/", getAllBookingsController);
 router.get("/:id", getBookingByIdController);
-router.delete("/:id", deleteBookingController);
+//router.delete("/:id", deleteBookingController);
 router.put("/:id/assign", assignRiderToBookingController);
 router.put("/:id/auto-assign", autoAssignRiderController);
 

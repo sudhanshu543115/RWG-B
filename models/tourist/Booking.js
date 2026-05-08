@@ -76,19 +76,21 @@ const bookingSchema = new mongoose.Schema({
 
   specialRequest: String,
 
-  // 💰 STEP 3: PRICE BREAKDOWN
   pricing: {
     baseFare: { type: Number, default: 0 },
     distanceCost: { type: Number, default: 0 },
     timeCharge: { type: Number, default: 0 },
     guideServiceFee: { type: Number, default: 0 },
+    serviceFee: { type: Number, default: 0 },
+    rideFee: { type: Number, default: 0 },
+    totalAmount: { type: Number, default: 0 },
+    totalDistance: { type: Number, default: 0 },
+    distanceSegments: [{
+      from: String,
+      to: String,
+      distance: Number
+    }],
     demandMultiplier: { type: Number, default: 1 },
-
-    estimatedRange: {
-      min: Number,
-      max: Number
-    },
-
     advanceAmount: Number // 30% advance
   },
 
