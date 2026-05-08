@@ -1,8 +1,8 @@
 import express from "express";
 import { protectRider } from "../../../middleware/auth.middleware.js";
-import { 
-    getPendingBookings, 
-    expressInterest, 
+import {
+    getPendingBookings,
+    expressInterest,
     rejectBooking,
     getMyBookings,
     startRide,
