@@ -5,6 +5,7 @@ import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
 import razorpay from "../../../config/razorpay.js";
 
+
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
     const rider = await Rider.findById(riderId);
@@ -48,21 +49,6 @@ export const getPendingBookingsForRider = async (riderId) => {
         };
     }
 
-  if (rider.gender === "Female") {
-    query.genderPreference = {
-      $ne: "Male guide preferred",
-    };
-  }
-
-  console.log("Rider:", rider.name);
-  console.log("Query:", query);
-
-
-  const bookings = await Booking.find(query)
-    .populate("touristId", "name phone profileImage")
-    .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
-    .sort({ createdAt: -1 });
-  console.log("Bookings Found:", bookings.length);
     // gender preference filter
     if (rider.gender === "Male") {
         query.genderPreference = {
@@ -74,11 +60,15 @@ export const getPendingBookingsForRider = async (riderId) => {
         };
     }
 
+    console.log("Rider:", rider.name);
+    console.log("Query:", query);
+
     const bookings = await Booking.find(query)
         .populate("touristId", "name phone profileImage")
         .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
         .sort({ createdAt: -1 });
 
+    console.log("Bookings Found:", bookings.length);
     return bookings;
 };
 
