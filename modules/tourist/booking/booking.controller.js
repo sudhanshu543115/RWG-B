@@ -4,12 +4,11 @@ import {
     getBookingByIdService, 
     cancelBookingService 
 } from "./booking.service.js";
-import { notifyMatchedRidersNewBooking } from "../../../core/socket.events.js";
+import { notifyMatchedRidersNewBooking, notifyRidersBookingCancelled, notifyAdminBookingCancelled } from "../../../core/socket.events.js";
 
 export const createBooking = async (req, res) => {
     try {
         const booking = await createBookingService(req.user._id, req.body);
-        await notifyMatchedRidersNewBooking(booking);
         return res.status(201).json({
             success: true,
             message: "Booking created successfully.",
@@ -63,6 +62,11 @@ export const cancelBooking = async (req, res) => {
     try {
         const { id } = req.params;
         const updatedBooking = await cancelBookingService(req.user._id, id);
+
+        // Notify riders and admin about the cancellation via socket
+        notifyRidersBookingCancelled(updatedBooking);
+        notifyAdminBookingCancelled(updatedBooking);
+        
         return res.status(200).json({
             success: true,
             message: "Booking cancelled successfully.",

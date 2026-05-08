@@ -142,6 +142,40 @@ function notifyRiderAssigned(booking, rider) {
   }
 }
 
+function notifyRidersBookingCancelled(booking) {
+  try {
+    const payload = {
+      bookingId: booking._id,
+      message: `The booking in ${booking.city} has been cancelled by the tourist.`
+    };
+
+    // 1. Notify the assigned rider if any
+    if (booking.riderId) {
+      emitToRoom(`rider:${booking.riderId}`, "booking-cancelled", payload);
+    }
+
+    // 2. Notify all interested riders (to clear their UI)
+    if (booking.interestedRiders && booking.interestedRiders.length > 0) {
+      booking.interestedRiders.forEach(item => {
+        emitToRoom(`rider:${item.riderId}`, "booking-cancelled", payload);
+      });
+    }
+  } catch (error) {
+    console.error("❌ Socket cancellation notify error:", error.message);
+  }
+}
+
+function notifyAdminBookingCancelled(booking) {
+  try {
+    emitToRoom("admin", "booking-cancelled", {
+      bookingId: booking._id,
+      message: `Booking #${booking._id} was cancelled by the tourist.`
+    });
+  } catch (error) {
+    console.error("❌ Admin cancellation notify error:", error.message);
+  }
+}
+
 
 // ✅ IMPORTANT PART (this fixes your error)
 export {
@@ -149,6 +183,8 @@ export {
   getIO,
   notifyAdminRiderInterested,
   notifyMatchedRidersNewBooking,
-    notifyTouristRiderAssigned ,
-     notifyRiderAssigned // 👈 ADD THIS
+  notifyTouristRiderAssigned,
+  notifyRiderAssigned,
+  notifyRidersBookingCancelled,
+  notifyAdminBookingCancelled
 };

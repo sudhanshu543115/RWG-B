@@ -133,6 +133,7 @@ export const rejectBookingService = async (riderId, bookingId) => {
     }
     await booking.save();
     return booking;
+
 };
 
 // Start the ride with OTP verification
@@ -140,6 +141,7 @@ export const startRideService = async (riderId, bookingId, enteredOtp) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId });
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "assigned") throw new Error("Booking must be assigned to start.");
+
 
     // Verify OTP
     if (booking.rideOTP !== enteredOtp) {
@@ -163,12 +165,12 @@ export const completeRideService = async (riderId, bookingId) => {
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "ongoing") throw new Error("Only ongoing rides can be completed.");
 
-    const total = booking.pricing?.guideServiceFee || 0;
+    const total = booking.pricing?.totalAmount || 0;
     const advance = booking.pricing?.advanceAmount || 0;
     const remaining = Math.max(total - advance, 0);
-console.log("TOTAL:", total);
-console.log("ADVANCE:", advance);
-console.log("REMAINING:", remaining);
+
+    console.log(`[PAYMENT_DEBUG] Booking: ${bookingId}, Total: ${total}, Advance: ${advance}, Remaining: ${remaining}`);
+
     let paymentLink = null;
     let paymentLinkId = null;
 
@@ -193,13 +195,43 @@ console.log("REMAINING:", remaining);
 
         booking.payment.remainingOrderId = paymentLinkId;
         booking.payment.remainingAmount = remaining;
-        booking.payment.status = "partial_paid";
+    } else {
+        booking.bookingStatus = "completed";
     }
 
-    booking.bookingStatus = "completed";
     await booking.save();
 
     return { booking, paymentLink, paymentLinkId, remainingAmount: remaining };
+};
+
+export const verifyAndCompleteRideService = async (riderId, bookingId) => {
+    const booking = await Booking.findOne({ _id: bookingId, riderId });
+    if (!booking) throw new Error("Booking not found.");
+
+    if (booking.bookingStatus === "completed") return booking;
+
+    const paymentLinkId = booking.payment.remainingOrderId;
+    
+    // If no payment link exists, it means remaining was 0, so just complete it
+    if (!paymentLinkId) {
+        booking.bookingStatus = "completed";
+        await booking.save();
+        return booking;
+    }
+
+    // Verify with Razorpay
+    const paymentLink = await razorpay.paymentLink.fetch(paymentLinkId);
+
+    if (paymentLink.status === 'paid') {
+        booking.bookingStatus = "completed";
+        booking.payment.status = "paid"; // Final 100% status
+        booking.payment.amountPaid = (booking.payment.amountPaid || 0) + (booking.payment.remainingAmount || 0);
+        booking.payment.paidAt = new Date();
+        await booking.save();
+        return booking;
+    } else {
+        throw new Error("Payment is not yet completed by the tourist.");
+    }
 };
 
 // Get all bookings assigned to this rider (Assigned, Ongoing, Completed)
@@ -220,4 +252,6 @@ export const getBookingByIdService = async (bookingId, riderId) => {
         throw new Error("Booking not found or you are not authorized to view it.");
     }
     return booking;
+
+
 };

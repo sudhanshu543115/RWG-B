@@ -94,6 +94,8 @@ export const createBookingService = async (userId, bookingData) => {
 
 
 
+
+
 export const getBookingsService = async (userId) => {
     const bookings = await Booking.find({ touristId: userId })
         .populate("riderId", "name phone profileImage vehicleModel vehicleNumber vehicleType rating")
@@ -117,6 +119,11 @@ export const cancelBookingService = async (userId, bookingId) => {
 
     if (!booking) {
         throw new Error("Booking not found.");
+    }
+
+    // Prevents proceeding if ride has already started or finished
+    if (["ongoing", "completed"].includes(booking.bookingStatus)) {
+        throw new Error(`Cannot cancel an ${booking.bookingStatus} ride.`);
     }
 
     if (booking.bookingStatus === "cancelled") {

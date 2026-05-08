@@ -1,10 +1,11 @@
-import { 
-    getPendingBookingsForRider, 
-    expressInterestService, 
+import {
+    getPendingBookingsForRider,
+    expressInterestService,
     rejectBookingService,
     getMyBookingsService,
     startRideService,
     completeRideService,
+    verifyAndCompleteRideService,
     getBookingByIdService
 } from "./bookings.service.js";
 
@@ -79,11 +80,24 @@ const { booking, paymentLink, remainingAmount } =
 
 res.status(200).json({
     success: true,
-    message: "Ride completed!",
+    message: "Ride completion initiated. Please collect payment.",
     data: booking,
-    paymentLink,        // ✅ frontend ko milega
+    paymentLink,
     remainingAmount
 });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const verifyPaymentAndComplete = async (req, res) => {
+    try {
+        const booking = await verifyAndCompleteRideService(req.user._id, req.params.id);
+        res.status(200).json({ 
+            success: true, 
+            message: "Payment verified and ride completed! 🎉", 
+            data: booking 
+        });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
