@@ -15,6 +15,8 @@ import adminRiderRoutes from "../modules/admin/riders/riders.routes.js";
 import adminBookingRoutes from "../modules/admin/bookings/bookings.routes.js";
 import adminTouristRoutes from "../modules/admin/tourists/tourists.routes.js";
 import platformConfigRoutes from "../modules/admin/config/config.routes.js";
+import adminEarningsRoutes from "../modules/admin/earnings/earnings.routes.js";
+
 
 const router = express.Router();
 
@@ -40,7 +42,12 @@ router.use("/api/rider/bookings", riderBookingRoutes);
 router.use("/api/admin/auth", adminAuthRoutes);
 router.use("/api/admin/riders", adminRiderRoutes);
 router.use("/api/admin/bookings", adminBookingRoutes);
-router.use("/api/admin/tourists", adminTouristRoutes);
+router.use("/api/admin/tourists", adminTouristRoutes);      
+
+// Admin Earnings
+router.use("/api/admin/earnings", adminEarningsRoutes);
+
+
 
 
 export default router;
