@@ -38,6 +38,8 @@ export const getPendingBookingsForRider = async (riderId) => {
         rejectedRiders: {
             $nin: [rider._id],
         },
+
+        
     };
 
     // multiple languages match
@@ -65,7 +67,7 @@ export const getPendingBookingsForRider = async (riderId) => {
 
     const bookings = await Booking.find(query)
         .populate("touristId", "name phone profileImage")
-        .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
+        .select("city date startTime durationType pickupLocation stops language genderPreference touristId pricing.totalAmount pricing.serviceFee pricing.guideServiceFee createdAt bookingStatus interestedRiders rejectedRiders expiresAt")
         .sort({ createdAt: -1 });
 
     console.log("Bookings Found:", bookings.length);
@@ -228,7 +230,7 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
 export const getMyBookingsService = async (riderId) => {
     const bookings = await Booking.find({ riderId })
         .populate("touristId", "name phone profileImage")
-        .select("-pricing -payment.transactionId -payment.amountPaid -payment.paidAt")
+        .select("city date startTime durationType pickupLocation stops language genderPreference touristId pricing.totalAmount pricing.serviceFee pricing.guideServiceFee bookingStatus rideOTP payment.status payment.remainingAmount createdAt interestedRiders rejectedRiders expiresAt")
         .sort({ createdAt: -1 });
     return bookings;
 };
