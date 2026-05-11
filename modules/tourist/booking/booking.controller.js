@@ -2,7 +2,8 @@ import {
     createBookingService, 
     getBookingsService, 
     getBookingByIdService, 
-    cancelBookingService 
+    cancelBookingService ,
+    rateRiderService
 } from "./booking.service.js";
 import { notifyMatchedRidersNewBooking, notifyRidersBookingCancelled, notifyAdminBookingCancelled } from "../../../core/socket.events.js";
 
@@ -80,3 +81,20 @@ export const cancelBooking = async (req, res) => {
         });
     }
 };
+
+
+export const rateRider = async (req, res) => {
+    try {
+        const { rating } = req.body; // Only taking rating
+        const booking = await rateRiderService(req.user._id, req.params.id, rating);
+        
+        res.status(200).json({
+            success: true,
+            message: "Rating submitted successfully",
+            data: booking
+        });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+

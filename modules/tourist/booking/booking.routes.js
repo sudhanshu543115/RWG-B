@@ -3,7 +3,8 @@ import {
     createBooking, 
     getBookings, 
     getBookingById, 
-    cancelBooking 
+    cancelBooking ,
+    rateRider
 } from "./booking.controller.js";
 import { protectTourist } from "../../../middleware/auth.middleware.js";
 
@@ -18,5 +19,8 @@ router.route("/")
 router.route("/:id")
     .get(getBookingById)
     .patch(cancelBooking); // Using PATCH for status update
+
+
+router.patch("/:id/rate", rateRider);
 
 export default router;
