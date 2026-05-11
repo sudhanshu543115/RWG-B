@@ -12,7 +12,11 @@ const riderSchema = new mongoose.Schema({
     profileImage: { type: String, default: "" },
 
     // Step 2: Vehicle & Expertise
-    vehicleType: { type: String, default: "" },
+    vehicleType: { 
+        type: String, 
+        enum: ["bike", "bike-light", "cab", "auto", ""], 
+        default: "" 
+    },
     vehicleModel: { type: String, default: "" },
     vehicleNumber: { type: String, default: "" },
     languages: { type: [String], default: [] },

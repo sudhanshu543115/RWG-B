@@ -96,7 +96,11 @@ export const autoAssignRiderService = async (bookingId) => {
     // We sort by rating (highest first) and then by total rides
     const candidates = booking.interestedRiders
         .map(item => item.riderId)
-        .filter(rider => rider.verificationStatus === "approved" && rider.profileCompleted === true)
+        .filter(rider => 
+            rider.verificationStatus === "approved" && 
+            rider.profileCompleted === true &&
+            rider.vehicleType === booking.vehicleType
+        )
         .sort((a, b) => {
             if (b.rating !== a.rating) return b.rating - a.rating;
             return b.totalRides - a.totalRides;

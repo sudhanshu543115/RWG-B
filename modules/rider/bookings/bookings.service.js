@@ -21,6 +21,7 @@ export const getPendingBookingsForRider = async (riderId) => {
 
     const query = {
         bookingStatus: "searching",
+        vehicleType: rider.vehicleType,
 
         // city match (case insensitive)
         city: {

@@ -5,7 +5,7 @@ export const createBookingService = async (userId, bookingData) => {
     const {
         city, date, startTime, endTime, durationType,
         totalHours, pickupLocation, language, genderPreference,
-        stops, specialRequest, pricing, payment
+        stops, specialRequest, pricing, payment, vehicleType
     } = bookingData;
 
     const newBooking = new Booking({
@@ -19,6 +19,7 @@ export const createBookingService = async (userId, bookingData) => {
         pickupLocation,
         language,
         genderPreference,
+        vehicleType,
         stops,
         specialRequest,
         pricing,
