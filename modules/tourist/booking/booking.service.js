@@ -1,5 +1,6 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Settings from "../../../models/admin/Setting.js";
+import Rider from "../../../models/rider/Rider.js";
 
 export const createBookingService = async (userId, bookingData) => {
     const {
@@ -134,6 +135,39 @@ export const cancelBookingService = async (userId, bookingId) => {
     await booking.save();
     return booking;
 };
+
+
+
+export const rateRiderService = async (touristId, bookingId, rating) => {
+    const booking = await Booking.findOne({ _id: bookingId, touristId });
+    
+    if (!booking) throw new Error("Booking not found");
+    if (booking.bookingStatus !== "completed") throw new Error("Ride not completed yet");
+
+    // Save only the star rating
+    booking.review = {
+        rating,
+        isReviewed: true,
+        reviewedAt: new Date()
+    };
+    await booking.save();
+
+    // Update Rider's Average Star Rating
+    const rider = await Rider.findById(booking.riderId);
+    if (rider) {
+        const total = rider.totalRides || 0;
+        const current = rider.rating || 0;
+        const ratingNum = Number(rating); // 🔥 Force to Number
+        
+        const calculatedRating = ((current * total) + ratingNum) / (total + 1);
+        rider.rating = Number(calculatedRating.toFixed(1)); // 🎯 Round to 1 decimal
+        rider.totalRides = total + 1;
+        await rider.save();
+    }
+
+    return booking;
+};
+
 
 
 
