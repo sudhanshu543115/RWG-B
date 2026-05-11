@@ -40,6 +40,7 @@ export const verifyRiderOtpService = async (phone, otp) => {
 
     return {
         token,
-        isProfileComplete: !!rider.profileCompleted
+        isProfileComplete: !!rider.profileCompleted,
+        isVerified: !!rider.isVerified
     };
 };
