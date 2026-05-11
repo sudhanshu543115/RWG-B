@@ -34,6 +34,7 @@ async function notifyMatchedRidersNewBooking(booking) {
       languages: booking.language,
       isVerified: true,
       verificationStatus: "approved",
+      vehicleType: booking.vehicleType,
       ...genderFilter
     }).select("_id").lean();
 

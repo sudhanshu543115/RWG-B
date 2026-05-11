@@ -49,6 +49,17 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use(routes);
+ 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("❌ GLOBAL ERROR:", err);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+    error: process.env.NODE_ENV === "development" ? err : {}
+  });
+});
 
 
 
