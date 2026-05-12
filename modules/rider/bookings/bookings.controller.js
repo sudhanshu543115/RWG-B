@@ -8,6 +8,7 @@ import {
     verifyAndCompleteRideService,
     getBookingByIdService
 } from "./bookings.service.js";
+import { notifyTouristRideCompleted } from "../../../core/socket.events.js";
 
 export const getBookingById = async (req, res) => {
     try {
@@ -85,6 +86,11 @@ res.status(200).json({
     paymentLink,
     remainingAmount
 });
+
+// Notify tourist if completed immediately (0 remaining)
+if (booking.bookingStatus === 'completed') {
+    notifyTouristRideCompleted(booking);
+}
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
@@ -98,6 +104,9 @@ export const verifyPaymentAndComplete = async (req, res) => {
             message: "Payment verified and ride completed! 🎉", 
             data: booking 
         });
+
+        // Notify tourist via socket
+        notifyTouristRideCompleted(booking);
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
