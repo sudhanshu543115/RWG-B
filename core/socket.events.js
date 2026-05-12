@@ -176,7 +176,27 @@ function notifyAdminBookingCancelled(booking) {
     console.error("❌ Admin cancellation notify error:", error.message);
   }
 }
+function notifyRiderPaymentCompleted(booking, riderId) {
+  try {
+    const payload = {
+      bookingId: booking._id,
+      city: booking.city,
+      amount: booking.payment?.remainingAmount || 0,
+      message: `Payment completed successfully for ride in ${booking.city} 🎉`
+    };
 
+    console.log("💰 PAYMENT COMPLETED NOTIFICATION TO RIDER:", riderId);
+
+    emitToRoom(
+      `rider:${riderId}`,
+      "payment-completed",
+      payload
+    );
+
+  } catch (error) {
+    console.error("❌ Rider payment notify error:", error.message);
+  }
+}
 
 // ✅ IMPORTANT PART (this fixes your error)
 export {
@@ -187,5 +207,6 @@ export {
   notifyTouristRiderAssigned,
   notifyRiderAssigned,
   notifyRidersBookingCancelled,
-  notifyAdminBookingCancelled
+  notifyAdminBookingCancelled,
+  notifyRiderPaymentCompleted
 };
