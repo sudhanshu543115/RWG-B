@@ -198,7 +198,7 @@ function notifyRiderPaymentCompleted(booking, riderId) {
   }
 }
 
-// ✅ IMPORTANT PART
+// ✅ IMPORTANT PART (this fixes your error)
 export {
   initSocketEvents,
   getIO,
@@ -208,6 +208,5 @@ export {
   notifyRiderAssigned,
   notifyRidersBookingCancelled,
   notifyAdminBookingCancelled,
-  notifyTouristRideCompleted
   notifyRiderPaymentCompleted
 };
