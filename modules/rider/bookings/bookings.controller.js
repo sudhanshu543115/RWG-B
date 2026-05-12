@@ -8,7 +8,7 @@ import {
     verifyAndCompleteRideService,
     getBookingByIdService
 } from "./bookings.service.js";
-import { notifyTouristRideCompleted } from "../../../core/socket.events.js";
+
 
 export const getBookingById = async (req, res) => {
     try {
