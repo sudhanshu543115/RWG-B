@@ -1,6 +1,6 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Rider from "../../../models/rider/Rider.js";
-import { notifyAdminRiderInterested } from "../../../core/socket.events.js";
+import { notifyAdminRiderInterested, notifyRiderPaymentCompleted } from "../../../core/socket.events.js";
 import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
 import razorpay from "../../../config/razorpay.js";
@@ -21,6 +21,7 @@ export const getPendingBookingsForRider = async (riderId) => {
 
     const query = {
         bookingStatus: "searching",
+        vehicleType: rider.vehicleType,
 
         // city match (case insensitive)
         city: {
@@ -203,6 +204,7 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
     if (booking.bookingStatus === "completed") return booking;
 
     const paymentLinkId = booking.payment.remainingOrderId;
+
     
     // If no payment link exists, it means remaining was 0, so just complete it
     if (!paymentLinkId) {
@@ -220,6 +222,8 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
         booking.payment.amountPaid = (booking.payment.amountPaid || 0) + (booking.payment.remainingAmount || 0);
         booking.payment.paidAt = new Date();
         await booking.save();
+         // ✅ SOCKET EMIT TO RIDER
+    notifyRiderPaymentCompleted(booking, riderId);
         return booking;
     } else {
         throw new Error("Payment is not yet completed by the tourist.");

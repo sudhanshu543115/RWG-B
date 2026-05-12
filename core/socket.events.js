@@ -34,6 +34,7 @@ async function notifyMatchedRidersNewBooking(booking) {
       languages: booking.language,
       isVerified: true,
       verificationStatus: "approved",
+      vehicleType: booking.vehicleType,
       ...genderFilter
     }).select("_id").lean();
 
@@ -175,28 +176,27 @@ function notifyAdminBookingCancelled(booking) {
     console.error("❌ Admin cancellation notify error:", error.message);
   }
 }
-
-function notifyTouristRideCompleted(booking) {
+function notifyRiderPaymentCompleted(booking, riderId) {
   try {
-    let touristId;
-    if (booking.touristId && typeof booking.touristId === 'object') {
-      touristId = booking.touristId._id?.toString();
-    } else {
-      touristId = booking.touristId?.toString();
-    }
-
-    if (!touristId) return;
-
-    emitToRoom(`tourist:${touristId}`, "ride-completed", {
+    const payload = {
       bookingId: booking._id,
-      message: "Your tour has been completed! Please rate your guide."
-    });
-    console.log("📡 NOTIFIED TOURIST OF COMPLETION:", touristId);
+      city: booking.city,
+      amount: booking.payment?.remainingAmount || 0,
+      message: `Payment completed successfully for ride in ${booking.city} 🎉`
+    };
+
+    console.log("💰 PAYMENT COMPLETED NOTIFICATION TO RIDER:", riderId);
+
+    emitToRoom(
+      `rider:${riderId}`,
+      "payment-completed",
+      payload
+    );
+
   } catch (error) {
-    console.error("❌ Completion notify error:", error.message);
+    console.error("❌ Rider payment notify error:", error.message);
   }
 }
-
 
 // ✅ IMPORTANT PART
 export {
@@ -209,4 +209,5 @@ export {
   notifyRidersBookingCancelled,
   notifyAdminBookingCancelled,
   notifyTouristRideCompleted
+  notifyRiderPaymentCompleted
 };

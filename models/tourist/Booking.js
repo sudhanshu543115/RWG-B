@@ -17,7 +17,12 @@ const bookingSchema = new mongoose.Schema({
     ref: "User",
     required: true
   },
-  
+  vehicleType: {
+    type: String,
+    enum: ["bike", "bike-light", "cab", "auto"],
+    default: "bike"
+  },
+
 
   // This is the "Guide" assigned to the booking. 
   // In the folder structure, these are referred to as "Riders".
