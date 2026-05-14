@@ -131,3 +131,23 @@ export const getRiderEarningsService = async (riderId) => {
         }
     };
 };
+
+export const insertRiderEarning = async (booking) => {
+    const rider = await Rider.findById(booking.riderId);
+    if (!rider) throw new Error("Rider not found");
+
+    const earning = {
+        riderId: booking.riderId,
+        bookingId: booking._id,
+        amount: booking.pricing?.totalAmount || 0,
+        platformFee: booking.pricing?.serviceFee || 0,
+        totalAmount: booking.pricing?.totalAmount || 0,
+        payment: booking.payment || {},
+        status: booking.payment?.status || "paid"
+    };
+
+    rider.earnings.push(earning);
+    await rider.save();
+
+    return earning;
+}
