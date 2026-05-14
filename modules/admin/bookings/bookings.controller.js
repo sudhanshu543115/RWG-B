@@ -106,6 +106,7 @@ export const autoAssignRiderController = async (req, res) => {
 
 
 
+
 export const getSettings = async (req, res) => {
     try {
         const settings = await getSettingsService();
