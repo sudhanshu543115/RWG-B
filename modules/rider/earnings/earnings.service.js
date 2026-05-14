@@ -120,6 +120,9 @@ export const getRiderEarningsService = async (riderId) => {
             totalRides: totals.totalRides,
             rating: rider.rating || 0,
             acceptanceRate: 92, // placeholder or calculate from interested/rejected
+            walletBalance: rider.walletBalance || 0,
+            pendingWithdrawal: rider.pendingWithdrawal || 0,
+            availableBalance: (rider.walletBalance || 0) - (rider.pendingWithdrawal || 0)
         },
         dailyBreakdown,
         latestTransactions,
