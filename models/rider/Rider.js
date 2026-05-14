@@ -46,6 +46,7 @@ const riderSchema = new mongoose.Schema({
     // Runtime
     isOnline: { type: Boolean, default: false },
     walletBalance: { type: Number, default: 0 },
+    pendingWithdrawal: { type: Number, default: 0 },
     rating: { type: Number, default: 5.0 },
     totalRides: { type: Number, default: 0 },
 }, {

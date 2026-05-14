@@ -211,7 +211,7 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
     if (!paymentLinkId) {
         booking.bookingStatus = "completed";
         await booking.save();
-        await creditRiderWallet(riderId, booking); // 💰 Add to wallet
+        await creditRiderWallet(riderId, booking);
         return booking;
     }
 
@@ -224,9 +224,9 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
         booking.payment.amountPaid = (booking.payment.amountPaid || 0) + (booking.payment.remainingAmount || 0);
         booking.payment.paidAt = new Date();
         await booking.save();
-        await creditRiderWallet(riderId, booking); // 💰 Add to wallet
-        // ✅ SOCKET EMIT TO RIDER
-        notifyRiderPaymentCompleted(booking, riderId);
+        
+         // ✅ SOCKET EMIT TO RIDER
+    notifyRiderPaymentCompleted(booking, riderId);
         return booking;
     } else {
         throw new Error("Payment is not yet completed by the tourist.");
