@@ -21,6 +21,7 @@ import adminEarningsRoutes from "../modules/admin/earnings/earnings.routes.js";
 import riderWithdrawalRoutes 
 from "../modules/rider/withdrawal/withdrawal.routes.js";
 
+
 import riderPaymentMethodRoutes 
 from "../modules/rider/payment-method/paymentMethod.routes.js";
 import payoutRoutes from "../modules/admin/payout/payout.routes.js";
