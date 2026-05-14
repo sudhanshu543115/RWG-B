@@ -218,6 +218,28 @@ function notifyTouristRideCompleted(booking) {
   }
 }
 
+function notifyRiderPayoutProcessed(riderId, amount) {
+  try {
+    emitToRoom(`rider:${riderId}`, "payout-processed", {
+      message: `Your payout of ₹${amount} has been processed successfully!`,
+      amount
+    });
+  } catch (error) {
+    console.error("❌ Payout processed notify error:", error.message);
+  }
+}
+
+function notifyRiderPayoutRejected(riderId, amount) {
+  try {
+    emitToRoom(`rider:${riderId}`, "payout-rejected", {
+      message: `Your payout request for ₹${amount} was rejected. The amount has been returned to your available balance.`,
+      amount
+    });
+  } catch (error) {
+    console.error("❌ Payout rejected notify error:", error.message);
+  }
+}
+
 export {
   initSocketEvents,
   getIO,
@@ -228,5 +250,7 @@ export {
   notifyRidersBookingCancelled,
   notifyAdminBookingCancelled,
   notifyRiderPaymentCompleted,
-  notifyTouristRideCompleted
+  notifyTouristRideCompleted,
+  notifyRiderPayoutProcessed,
+  notifyRiderPayoutRejected
 };

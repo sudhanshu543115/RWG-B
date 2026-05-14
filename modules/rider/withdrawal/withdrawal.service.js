@@ -24,7 +24,8 @@ export const createWithdrawalService = async (
       );
    }
 
-   if (amount > rider.walletBalance) {
+   const availableBalance = rider.walletBalance - rider.pendingWithdrawal;
+   if (amount > availableBalance) {
       throw new Error(
          "Insufficient wallet balance"
       );
@@ -53,8 +54,6 @@ export const createWithdrawalService = async (
 
       status: "pending"
    });
-
-   rider.walletBalance -= amount;
 
    rider.pendingWithdrawal += amount;
 
