@@ -190,6 +190,7 @@ export const completeRideService = async (riderId, bookingId) => {
         booking.payment.remainingAmount = remaining;
     } else {
         booking.bookingStatus = "completed";
+        await creditRiderWallet(riderId, booking); // 💰 Add to wallet
     }
 
     await booking.save();
@@ -210,6 +211,7 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
     if (!paymentLinkId) {
         booking.bookingStatus = "completed";
         await booking.save();
+        await creditRiderWallet(riderId, booking); // 💰 Add to wallet
         return booking;
     }
 
@@ -222,13 +224,29 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
         booking.payment.amountPaid = (booking.payment.amountPaid || 0) + (booking.payment.remainingAmount || 0);
         booking.payment.paidAt = new Date();
         await booking.save();
-         // ✅ SOCKET EMIT TO RIDER
-    notifyRiderPaymentCompleted(booking, riderId);
+        await creditRiderWallet(riderId, booking); // 💰 Add to wallet
+        // ✅ SOCKET EMIT TO RIDER
+        notifyRiderPaymentCompleted(booking, riderId);
         return booking;
     } else {
         throw new Error("Payment is not yet completed by the tourist.");
     }
 };
+
+// 💰 Credit rider wallet on ride completion
+const creditRiderWallet = async (riderId, booking) => {
+    const total = booking.pricing?.totalAmount || 0;
+    const platformFee = booking.pricing?.serviceFee || 0;
+    const riderEarning = total - platformFee;
+
+    if (riderEarning > 0) {
+        await Rider.findByIdAndUpdate(riderId, {
+            $inc: { walletBalance: riderEarning }
+        });
+        console.log(`💰 Credited ₹${riderEarning} to rider ${riderId} wallet`);
+    }
+};
+
 
 // Get all bookings assigned to this rider (Assigned, Ongoing, Completed)
 export const getMyBookingsService = async (riderId) => {

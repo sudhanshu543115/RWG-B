@@ -198,7 +198,26 @@ function notifyRiderPaymentCompleted(booking, riderId) {
   }
 }
 
-// ✅ IMPORTANT PART (this fixes your error)
+function notifyTouristRideCompleted(booking) {
+  try {
+    let touristId;
+    if (booking.touristId && typeof booking.touristId === 'object') {
+      touristId = booking.touristId._id?.toString();
+    } else {
+      touristId = booking.touristId?.toString();
+    }
+    if (!touristId) return;
+
+    emitToRoom(`tourist:${touristId}`, "ride-completed", {
+      bookingId: booking._id,
+      message: "Your tour has been completed! Please rate your guide."
+    });
+    console.log("📡 NOTIFIED TOURIST OF COMPLETION:", touristId);
+  } catch (error) {
+    console.error("❌ Completion notify error:", error.message);
+  }
+}
+
 export {
   initSocketEvents,
   getIO,
@@ -208,5 +227,6 @@ export {
   notifyRiderAssigned,
   notifyRidersBookingCancelled,
   notifyAdminBookingCancelled,
-  notifyRiderPaymentCompleted
+  notifyRiderPaymentCompleted,
+  notifyTouristRideCompleted
 };
