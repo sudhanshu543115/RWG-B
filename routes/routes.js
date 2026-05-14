@@ -18,6 +18,14 @@ import adminBookingRoutes from "../modules/admin/bookings/bookings.routes.js";
 import adminTouristRoutes from "../modules/admin/tourists/tourists.routes.js";
 import platformConfigRoutes from "../modules/admin/config/config.routes.js";
 import adminEarningsRoutes from "../modules/admin/earnings/earnings.routes.js";
+import riderWithdrawalRoutes 
+from "../modules/rider/withdrawal/withdrawal.routes.js";
+
+import riderPaymentMethodRoutes 
+from "../modules/rider/payment-method/paymentMethod.routes.js";
+import payoutRoutes from "../modules/admin/payout/payout.routes.js";
+
+
 
 
 const router = express.Router();
@@ -37,6 +45,8 @@ router.use("/api/rider/profile", riderProfileRoutes);
 router.use("/api/payment", touristPaymentRoutes);
 router.use("/api/rider/bookings", riderBookingRoutes);
 router.use("/api/rider/earnings", riderEarningsRoutes);
+router.use("/api/rider/withdrawal", riderWithdrawalRoutes);
+router.use("/api/rider/payment-method", riderPaymentMethodRoutes);
 
 
 
@@ -46,6 +56,10 @@ router.use("/api/admin/auth", adminAuthRoutes);
 router.use("/api/admin/riders", adminRiderRoutes);
 router.use("/api/admin/bookings", adminBookingRoutes);
 router.use("/api/admin/tourists", adminTouristRoutes);
+router.use(
+   "/api/admin/payouts",
+   payoutRoutes
+);
 
 // Admin Earnings
 router.use("/api/admin/earnings", adminEarningsRoutes);
