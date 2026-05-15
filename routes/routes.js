@@ -7,6 +7,7 @@ import riderAuthRoutes from "../modules/rider/auth/auth.routes.js";
 import riderProfileRoutes from "../modules/rider/profile/profile.routes.js";
 import riderBookingRoutes from "../modules/rider/bookings/bookings.routes.js";
 import riderEarningsRoutes from "../modules/rider/earnings/earnings.routes.js";
+import riderStatsRoutes from "../modules/rider/stats/stats.routes.js";
 
 
 import touristPaymentRoutes from "../modules/tourist/payment/payment.routes.js";
@@ -47,6 +48,7 @@ router.use("/api/rider/profile", riderProfileRoutes);
 router.use("/api/payment", touristPaymentRoutes);
 router.use("/api/rider/bookings", riderBookingRoutes);
 router.use("/api/rider/earnings", riderEarningsRoutes);
+router.use("/api/rider/stats", riderStatsRoutes);
 router.use("/api/rider/withdrawal", riderWithdrawalRoutes);
 router.use("/api/rider/payment-method", riderPaymentMethodRoutes);
 
