@@ -16,6 +16,7 @@ import adminAuthRoutes from "../modules/admin/auth/auth.routes.js";
 import adminRiderRoutes from "../modules/admin/riders/riders.routes.js";
 import adminBookingRoutes from "../modules/admin/bookings/bookings.routes.js";
 import adminTouristRoutes from "../modules/admin/tourists/tourists.routes.js";
+import adminAnalyticsRoutes from "../modules/admin/analytics/analytics.routes.js";
 import platformConfigRoutes from "../modules/admin/config/config.routes.js";
 import adminEarningsRoutes from "../modules/admin/earnings/earnings.routes.js";
 import riderWithdrawalRoutes 
@@ -57,6 +58,7 @@ router.use("/api/admin/auth", adminAuthRoutes);
 router.use("/api/admin/riders", adminRiderRoutes);
 router.use("/api/admin/bookings", adminBookingRoutes);
 router.use("/api/admin/tourists", adminTouristRoutes);
+router.use("/api/admin/analytics", adminAnalyticsRoutes);
 router.use(
    "/api/admin/payouts",
    payoutRoutes
