@@ -166,13 +166,21 @@ const bookingSchema = new mongoose.Schema({
     ref: "Rider"
   }],
 
-  // Inside your Schema
-review: {
+    // Inside your Schema
+  review: {
     rating: { type: Number, min: 1, max: 5 },
-
     isReviewed: { type: Boolean, default: false },
     reviewedAt: { type: Date }
-}
+  },
+
+  transactions: [{
+    transactionId: String,
+    amount: Number,
+    method: String,
+    paymentType: { type: String, enum: ["advance", "final", "full"] },
+    status: { type: String, default: "success" },
+    paidAt: { type: Date, default: Date.now }
+  }],
 
 
 

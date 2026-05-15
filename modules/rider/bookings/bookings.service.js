@@ -220,10 +220,24 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
     const paymentLink = await razorpay.paymentLink.fetch(paymentLinkId);
 
     if (paymentLink.status === 'paid') {
+        const finalAmount = booking.payment.remainingAmount || 0;
+        
         booking.bookingStatus = "completed";
         booking.payment.status = "paid"; // Final 100% status
-        booking.payment.amountPaid = (booking.payment.amountPaid || 0) + (booking.payment.remainingAmount || 0);
+        booking.payment.amountPaid = (booking.payment.amountPaid || 0) + finalAmount;
+        booking.payment.remainingAmount = 0; // Clear remaining amount
         booking.payment.paidAt = new Date();
+
+        // Record transaction
+        booking.transactions.push({
+            transactionId: paymentLink.id,
+            amount: finalAmount,
+            method: "Net Banking", // Or dynamic if available
+            paymentType: "final",
+            status: "success",
+            paidAt: new Date()
+        });
+
         await booking.save();
         
         await creditRiderWallet(riderId, booking); // 💰 Add to wallet
