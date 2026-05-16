@@ -3,6 +3,7 @@ import User from "../../../models/tourist/User.js";
 import Rider from "../../../models/rider/Rider.js";
 import Settings from "../../../models/admin/Setting.js";
 import { notifyTouristRiderAssigned , notifyRiderAssigned} from "../../../core/socket.events.js";
+import Conversation from "../../../models/chat/Conversation.js";
 
 
 export const getAllBookings = async () => {
@@ -70,6 +71,21 @@ export const assignRiderToBooking = async (id, riderId) => {
 
     // 🔥 EMIT TO TOURIST
     console.log("🎯 CALLING notifyTouristRiderAssigned...");
+    // CREATE CHAT CONVERSATION
+await Conversation.findOneAndUpdate(
+    {
+        bookingId: booking._id
+    },
+    {
+        bookingId: booking._id,
+        touristId: booking.touristId._id,
+        riderId: booking.riderId._id
+    },
+    {
+        upsert: true,
+        new: true
+    }
+);
     notifyTouristRiderAssigned(booking, booking.riderId);
     // 🔥 EMIT TO RIDER
 notifyRiderAssigned(booking, booking.riderId);
@@ -122,6 +138,20 @@ export const autoAssignRiderService = async (bookingId) => {
     booking.rideOTP = otp;
     
     await booking.save();
+    await Conversation.findOneAndUpdate(
+    {
+        bookingId: booking._id
+    },
+    {
+        bookingId: booking._id,
+        touristId: booking.touristId._id,
+        riderId: bestRider._id
+    },
+    {
+        upsert: true,
+        new: true
+    }
+);
 
     return { booking, assignedRider: bestRider };
 };
