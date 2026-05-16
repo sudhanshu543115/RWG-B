@@ -1,31 +1,31 @@
-import Guide from "../models/guideModel.js";
-import Tour from "../models/tourModel.js";
-
-import Rider from "../../../"
+import Rider from "../../../models/rider/Rider.js";
+import Booking from "../../../models/tourist/Booking.js";
 
 export const searchService = async (query) => {
-
-  const guides = await Guide.find({
+  // Search for Riders (Guides)
+  const riders = await Rider.find({
     $or: [
       { name: { $regex: query, $options: "i" } },
       { city: { $regex: query, $options: "i" } },
-      { language: { $regex: query, $options: "i" } }
+      { bio: { $regex: query, $options: "i" } }
     ]
   })
-    .select("name city language profileImage rating")
+    .select("name city profileImage rating vehicleType")
     .limit(5);
 
-  const tours = await Tour.find({
+  // Search for Bookings/Tours
+  const bookings = await Booking.find({
     $or: [
-      { title: { $regex: query, $options: "i" } },
-      { city: { $regex: query, $options: "i" } }
+      { city: { $regex: query, $options: "i" } },
+      { "pickupLocation.address": { $regex: query, $options: "i" } },
+      { specialRequest: { $regex: query, $options: "i" } }
     ]
   })
-    .select("title city price thumbnail")
+    .select("city pickupLocation date pricing status")
     .limit(5);
 
   return {
-    guides,
-    tours
+    riders,
+    bookings
   };
 };

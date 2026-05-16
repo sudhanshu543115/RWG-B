@@ -31,6 +31,10 @@ import payoutRoutes from "../modules/admin/payout/payout.routes.js";
 import chatRoutes from "../modules/chat/chat.routes.js";
 
 
+import searchRoutes from "../modules/admin/Search/search.routes.js";
+
+
+
 const router = express.Router();
 
 // Public Config
@@ -54,6 +58,10 @@ router.use("/api/rider/payment-method", riderPaymentMethodRoutes);
 
 
 
+
+
+
+
 // Admin Routes
 
 router.use("/api/admin/auth", adminAuthRoutes);
@@ -65,6 +73,11 @@ router.use(
    "/api/admin/payouts",
    payoutRoutes
 );
+
+
+// Admin Search
+router.use("/api/admin/search", searchRoutes);
+
 
 // Admin Earnings
 router.use("/api/admin/earnings", adminEarningsRoutes);
