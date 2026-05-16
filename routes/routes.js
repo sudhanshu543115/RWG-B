@@ -20,6 +20,10 @@ import platformConfigRoutes from "../modules/admin/config/config.routes.js";
 import adminEarningsRoutes from "../modules/admin/earnings/earnings.routes.js";
 
 
+import searchRoutes from "../modules/admin/Search/search.routes.js";
+
+
+
 const router = express.Router();
 
 // Public Config
@@ -40,12 +44,21 @@ router.use("/api/rider/earnings", riderEarningsRoutes);
 
 
 
+
+
+
+
 // Admin Routes
 
 router.use("/api/admin/auth", adminAuthRoutes);
 router.use("/api/admin/riders", adminRiderRoutes);
 router.use("/api/admin/bookings", adminBookingRoutes);
 router.use("/api/admin/tourists", adminTouristRoutes);
+
+
+// Admin Search
+router.use("/api/admin/search", searchRoutes);
+
 
 // Admin Earnings
 router.use("/api/admin/earnings", adminEarningsRoutes);
