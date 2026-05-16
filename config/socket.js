@@ -85,6 +85,101 @@ export const initSocket = (server) => {
       socket.leave(`ride:${bookingId}`);
     });
 
+    // ================= CHAT SYSTEM =================
+
+// Join chat room
+socket.on("join-chat", ({ bookingId }) => {
+
+  if (!bookingId) return;
+
+  socket.join(`chat:${bookingId}`);
+
+  console.log(
+    `💬 SOCKET ${socket.id} JOINED CHAT ROOM: chat:${bookingId}`
+  );
+});
+
+
+// Send Message
+socket.on("send-message", async (data) => {
+  try {
+
+    const {
+      bookingId,
+      senderId,
+      senderRole,
+      receiverId,
+      message
+    } = data;
+
+    if (
+      !bookingId ||
+      !senderId ||
+      !receiverId ||
+      !message
+    ) {
+      return;
+    }
+
+    // Save in DB
+    const newMessage = await Message.create({
+      bookingId,
+      senderId,
+      senderRole,
+      receiverId,
+      message
+    });
+
+    // Emit to room
+    io.to(`chat:${bookingId}`).emit(
+      "receive-message",
+      newMessage
+    );
+
+    console.log("💬 NEW MESSAGE:", message);
+
+  } catch (error) {
+    console.error(
+      "❌ SEND MESSAGE ERROR:",
+      error.message
+    );
+  }
+});
+
+
+// Mark messages seen
+socket.on("mark-seen", async ({ bookingId, userId }) => {
+
+  try {
+
+    await Message.updateMany(
+      {
+        bookingId,
+        receiverId: userId,
+        seen: false
+      },
+      {
+        seen: true
+      }
+    );
+
+    io.to(`chat:${bookingId}`).emit(
+      "messages-seen",
+      {
+        bookingId,
+        userId
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "❌ MARK SEEN ERROR:",
+      error.message
+    );
+  }
+});
+
 
 
 

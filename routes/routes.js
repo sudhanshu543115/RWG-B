@@ -28,7 +28,7 @@ import riderPaymentMethodRoutes
 from "../modules/rider/payment-method/paymentMethod.routes.js";
 import payoutRoutes from "../modules/admin/payout/payout.routes.js";
 
-
+import chatRoutes from "../modules/chat/chat.routes.js";
 
 
 const router = express.Router();
@@ -68,6 +68,11 @@ router.use(
 
 // Admin Earnings
 router.use("/api/admin/earnings", adminEarningsRoutes);
+
+
+// chat Routes
+
+router.use("/api/chat", chatRoutes);
 
 
 
