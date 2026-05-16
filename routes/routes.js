@@ -7,6 +7,7 @@ import riderAuthRoutes from "../modules/rider/auth/auth.routes.js";
 import riderProfileRoutes from "../modules/rider/profile/profile.routes.js";
 import riderBookingRoutes from "../modules/rider/bookings/bookings.routes.js";
 import riderEarningsRoutes from "../modules/rider/earnings/earnings.routes.js";
+import riderStatsRoutes from "../modules/rider/stats/stats.routes.js";
 
 
 import touristPaymentRoutes from "../modules/tourist/payment/payment.routes.js";
@@ -16,8 +17,18 @@ import adminAuthRoutes from "../modules/admin/auth/auth.routes.js";
 import adminRiderRoutes from "../modules/admin/riders/riders.routes.js";
 import adminBookingRoutes from "../modules/admin/bookings/bookings.routes.js";
 import adminTouristRoutes from "../modules/admin/tourists/tourists.routes.js";
+import adminAnalyticsRoutes from "../modules/admin/analytics/analytics.routes.js";
 import platformConfigRoutes from "../modules/admin/config/config.routes.js";
 import adminEarningsRoutes from "../modules/admin/earnings/earnings.routes.js";
+import riderWithdrawalRoutes 
+from "../modules/rider/withdrawal/withdrawal.routes.js";
+
+
+import riderPaymentMethodRoutes 
+from "../modules/rider/payment-method/paymentMethod.routes.js";
+import payoutRoutes from "../modules/admin/payout/payout.routes.js";
+
+import chatRoutes from "../modules/chat/chat.routes.js";
 
 
 import searchRoutes from "../modules/admin/Search/search.routes.js";
@@ -41,6 +52,9 @@ router.use("/api/rider/profile", riderProfileRoutes);
 router.use("/api/payment", touristPaymentRoutes);
 router.use("/api/rider/bookings", riderBookingRoutes);
 router.use("/api/rider/earnings", riderEarningsRoutes);
+router.use("/api/rider/stats", riderStatsRoutes);
+router.use("/api/rider/withdrawal", riderWithdrawalRoutes);
+router.use("/api/rider/payment-method", riderPaymentMethodRoutes);
 
 
 
@@ -54,6 +68,11 @@ router.use("/api/admin/auth", adminAuthRoutes);
 router.use("/api/admin/riders", adminRiderRoutes);
 router.use("/api/admin/bookings", adminBookingRoutes);
 router.use("/api/admin/tourists", adminTouristRoutes);
+router.use("/api/admin/analytics", adminAnalyticsRoutes);
+router.use(
+   "/api/admin/payouts",
+   payoutRoutes
+);
 
 
 // Admin Search
@@ -62,6 +81,11 @@ router.use("/api/admin/search", searchRoutes);
 
 // Admin Earnings
 router.use("/api/admin/earnings", adminEarningsRoutes);
+
+
+// chat Routes
+
+router.use("/api/chat", chatRoutes);
 
 
 

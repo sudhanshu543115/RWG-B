@@ -1,5 +1,6 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Rider from "../../../models/rider/Rider.js";
+import Admin from "../../../models/admin/Admin.js";
 import { notifyAdminRiderInterested, notifyRiderPaymentCompleted } from "../../../core/socket.events.js";
 import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
@@ -211,7 +212,7 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
     if (!paymentLinkId) {
         booking.bookingStatus = "completed";
         await booking.save();
-        await creditRiderWallet(riderId, booking); // 💰 Add to wallet
+        await creditRiderWallet(riderId, booking);
         return booking;
     }
 
@@ -219,31 +220,65 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
     const paymentLink = await razorpay.paymentLink.fetch(paymentLinkId);
 
     if (paymentLink.status === 'paid') {
+        const finalAmount = booking.payment.remainingAmount || 0;
+        
         booking.bookingStatus = "completed";
         booking.payment.status = "paid"; // Final 100% status
-        booking.payment.amountPaid = (booking.payment.amountPaid || 0) + (booking.payment.remainingAmount || 0);
+        booking.payment.amountPaid = (booking.payment.amountPaid || 0) + finalAmount;
+        booking.payment.remainingAmount = 0; // Clear remaining amount
         booking.payment.paidAt = new Date();
+
+        // Record transaction
+        booking.transactions.push({
+            transactionId: paymentLink.id,
+            amount: finalAmount,
+            method: "Net Banking", // Or dynamic if available
+            paymentType: "final",
+            status: "success",
+            paidAt: new Date()
+        });
+
         await booking.save();
+        
         await creditRiderWallet(riderId, booking); // 💰 Add to wallet
-        // ✅ SOCKET EMIT TO RIDER
-        notifyRiderPaymentCompleted(booking, riderId);
+        
+         // ✅ SOCKET EMIT TO RIDER
+    notifyRiderPaymentCompleted(booking, riderId);
         return booking;
     } else {
         throw new Error("Payment is not yet completed by the tourist.");
     }
 };
 
-// 💰 Credit rider wallet on ride completion
 const creditRiderWallet = async (riderId, booking) => {
-    const total = booking.pricing?.totalAmount || 0;
-    const platformFee = booking.pricing?.serviceFee || 0;
-    const riderEarning = total - platformFee;
+    try {
+        console.log(`[CREDIT_WALLET_START] Processing for Rider: ${riderId}, Booking: ${booking._id}`);
+        
+        const total = booking.pricing?.totalAmount || 0;
+        const platformFee = booking.pricing?.serviceFee || 0;
+        const riderEarning = total - platformFee;
 
-    if (riderEarning > 0) {
-        await Rider.findByIdAndUpdate(riderId, {
-            $inc: { walletBalance: riderEarning }
-        });
-        console.log(`💰 Credited ₹${riderEarning} to rider ${riderId} wallet`);
+        console.log(`[CREDIT_WALLET_CALC] Total: ${total}, PlatformFee: ${platformFee}, RiderEarning: ${riderEarning}`);
+
+        if (riderEarning > 0) {
+            const updatedRider = await Rider.findByIdAndUpdate(riderId, {
+                $inc: { walletBalance: riderEarning, totalEarnings: riderEarning }
+            }, { new: true });
+            console.log(`💰 Credited ₹${riderEarning} to rider ${riderId} wallet. New walletBalance: ${updatedRider?.walletBalance}`);
+        } else {
+            console.log(`⚠️ Rider earning is 0 or less, skipping wallet credit.`);
+        }
+
+        if (platformFee > 0) {
+            const adminResult = await Admin.updateMany({ role: "admin" }, {
+                $inc: { totalEarnings: platformFee }
+            });
+            console.log(`💰 Credited ₹${platformFee} platform fee to Admin. Modified docs: ${adminResult.modifiedCount}`);
+        } else {
+            console.log(`⚠️ Platform fee is 0 or less, skipping admin credit.`);
+        }
+    } catch (err) {
+        console.error(`[CREDIT_WALLET_ERROR] Failed to credit wallet:`, err);
     }
 };
 
