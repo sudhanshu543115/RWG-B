@@ -97,7 +97,7 @@ notifyRiderAssigned(booking, booking.riderId);
 export const autoAssignRiderService = async (bookingId) => {
     // 1. Find the booking and populate the interested riders' full details
     const booking = await Booking.findById(bookingId)
-        .populate("interestedRiders.riderId", "name rating totalRides isVerified verificationStatus profileCompleted city languages")
+        .populate("interestedRiders.riderId", "name rating totalRides isVerified verificationStatus profileCompleted city languages vehicleType")
         .populate("touristId"); // 👈 IMPORTANT: Populate touristId for notification
     
     if (!booking) throw new Error("Booking not found.");
@@ -114,8 +114,8 @@ export const autoAssignRiderService = async (bookingId) => {
         .map(item => item.riderId)
         .filter(rider => 
             rider.verificationStatus === "approved" && 
-            rider.profileCompleted === true &&
-            rider.vehicleType === booking.vehicleType
+            rider.profileCompleted === true
+            // rider.vehicleType === booking.vehicleType // Optional: Add this if you want to strictly match vehicle
         )
         .sort((a, b) => {
             if (b.rating !== a.rating) return b.rating - a.rating;
@@ -138,20 +138,30 @@ export const autoAssignRiderService = async (bookingId) => {
     booking.rideOTP = otp;
     
     await booking.save();
-    await Conversation.findOneAndUpdate(
-    {
-        bookingId: booking._id
-    },
-    {
-        bookingId: booking._id,
-        touristId: booking.touristId._id,
-        riderId: bestRider._id
-    },
-    {
-        upsert: true,
-        new: true
+
+    // 6. Real-time Notifications
+    try {
+        const { 
+            notifyTouristRiderAssigned, 
+            notifyRiderAssigned 
+        } = await import("../../../core/socket.events.js");
+
+        notifyTouristRiderAssigned(booking, bestRider);
+        notifyRiderAssigned(booking, bestRider._id);
+    } catch (err) {
+        console.error("Auto-assign socket notification error:", err.message);
     }
-);
+
+    // 7. Update/Create Conversation
+    await Conversation.findOneAndUpdate(
+        { bookingId: booking._id },
+        { 
+            bookingId: booking._id,
+            touristId: booking.touristId._id,
+            riderId: bestRider._id
+        },
+        { upsert: true, new: true }
+    );
 
     return { booking, assignedRider: bestRider };
 };
