@@ -40,7 +40,7 @@ export const getPendingBookingsForRider = async (riderId) => {
             $nin: [rider._id],
         },
 
-        
+
     };
 
     // multiple languages match
@@ -101,8 +101,8 @@ export const expressInterestService = async (riderId, bookingId) => {
     // --- NEW: Automatic Best-Match Trigger ---
     try {
         const settings = await Settings.findOne();
-        if (settings?.autoAssign && booking.interestedRiders.length >= 2) {
-            console.log("Auto-assign triggered: 2 riders interested.");
+        if (settings?.autoAssign && booking.interestedRiders.length >= 1) {
+            console.log("Auto-assign triggered: 1st rider interested.");
             await autoAssignRiderService(bookingId);
         }
     } catch (err) {
@@ -154,7 +154,7 @@ export const startRideService = async (riderId, bookingId, enteredOtp) => {
 export const completeRideService = async (riderId, bookingId) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId })
         .populate("touristId", "name phone");
-    
+
     if (!booking) throw new Error("Booking not found or not assigned to you.");
     if (booking.bookingStatus !== "ongoing") throw new Error("Only ongoing rides can be completed.");
 
@@ -206,7 +206,7 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
 
     const paymentLinkId = booking.payment.remainingOrderId;
 
-    
+
     // If no payment link exists, it means remaining was 0, so just complete it
     if (!paymentLinkId) {
         booking.bookingStatus = "completed";
