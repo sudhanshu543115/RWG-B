@@ -11,6 +11,12 @@ const transactionSchema = new mongoose.Schema({
         enum: ["credit", "debit"]
     },
 
+  // ✅ ADD THIS
+  remainingAmount: {
+    type: Number,
+    default: 0
+  },
+
     amount: Number,
 
     description: String, // "Added money", "Booking payment"

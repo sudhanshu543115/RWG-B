@@ -50,26 +50,62 @@ export const verifyRazorpayPayment = async (razorpayOrderId, razorpayPaymentId, 
 
     // Update the payment sub-object correctly
     const amountPaid = payment.amount / 100;
-    const paymentMethod = payment.method === "card" ? "Card" : (payment.method === "upi" ? "UPI" : "Net Banking");
+
+const paymentMethod =
+  payment.method === "card"
+    ? "Card"
+    : payment.method === "upi"
+    ? "UPI"
+    : "Net Banking";
+
+// ✅ Total paid till now
+const totalPaid =
+  (booking.payment.amountPaid || 0) + amountPaid;
+
+// ✅ Remaining amount
+const remainingAmount =
+  booking.pricing.totalAmount - totalPaid;
 
     booking.payment = {
-        ...booking.payment,
-        status: "partial_paid", // Initial 30% advance
-        method: paymentMethod,
-        amountPaid: (booking.payment.amountPaid || 0) + amountPaid,
-        transactionId: razorpayPaymentId,
-        paidAt: new Date()
-    };
+  ...booking.payment,
+
+  status:
+    remainingAmount <= 0
+      ? "paid"
+      : "partial_paid",
+
+  method: paymentMethod,
+
+  amountPaid: totalPaid,
+
+  // ✅ SAVE REMAINING
+  remainingAmount: remainingAmount,
+
+  transactionId: razorpayPaymentId,
+
+  paidAt: new Date()
+};
 
     // Record transaction
-    booking.transactions.push({
-        transactionId: razorpayPaymentId,
-        amount: amountPaid,
-        method: paymentMethod,
-        paymentType: "advance",
-        status: "success",
-        paidAt: new Date()
-    });
+  booking.transactions.push({
+  transactionId: razorpayPaymentId,
+
+  amount: amountPaid,
+
+  method: paymentMethod,
+
+  paymentType:
+    remainingAmount <= 0
+      ? "full"
+      : "advance",
+
+  status: "success",
+
+  // ✅ SAVE SNAPSHOT
+  remainingAmount: remainingAmount,
+
+  paidAt: new Date()
+});
 
     booking.bookingStatus = "searching"; // Broadcast to riders
     booking.assignmentStatus = "waiting_for_riders";
@@ -109,7 +145,32 @@ export const getPaymentHistoryService = async (userId) => {
                 }];
             }
 
-            return bookingObj;
+            return {
+  ...bookingObj,
+
+  totalAmount:
+    booking.pricing.totalAmount,
+
+  advanceAmount:
+    booking.pricing.advanceAmount,
+
+  paidAmount:
+    booking.payment.amountPaid || 0,
+
+  // ✅ RETURN REMAINING AMOUNT
+  remainingAmount:
+    booking.payment.remainingAmount ||
+    (
+      booking.pricing.totalAmount -
+      (booking.payment.amountPaid || 0)
+    ),
+
+  paymentStatus:
+    booking.payment.status,
+
+  paymentMethod:
+    booking.payment.method
+};
         });
 
         return history;
