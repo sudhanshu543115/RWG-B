@@ -22,6 +22,7 @@ const platformConfigSchema = new mongoose.Schema({
   PRICING_CONFIG: {
     ROAD_FACTOR: { type: Number, default: 1.2 },
     ADVANCE_PERCENT: { type: Number, default: 0.3 },
+    ADMIN_COMMISSION_PERCENT: { type: Number, default: 0.3 },
     DESCRIPTION: String,
     FORMULA: String
   },

@@ -16,14 +16,14 @@ const seedConfig = async () => {
         guideFee: 300
       },
       CITIES: [
-        { id: 'jaipur',  name: 'Jaipur',  demand: 1.1,  tagline: 'The Pink City',     lat: 26.9124, lng: 75.7873 },
-        { id: 'delhi',   name: 'Delhi',   demand: 1.25, tagline: 'The Capital',        lat: 28.6139, lng: 77.2090 },
-        { id: 'agra',    name: 'Agra',    demand: 1.15, tagline: 'City of Taj Mahal', lat: 27.1767, lng: 78.0081 },
-        { id: 'goa',     name: 'Goa',     demand: 1.4,  tagline: 'Pearl of Orient',   lat: 15.2993, lng: 74.1240 },
-        { id: 'mumbai',  name: 'Mumbai',  demand: 1.3,  tagline: 'City of Dreams',    lat: 19.0760, lng: 72.8777 },
-        { id: 'udaipur', name: 'Udaipur', demand: 1.1,  tagline: 'City of Lakes',     lat: 24.5854, lng: 73.7125 },
-        { id: 'varanasi',name: 'Varanasi',demand: 1.0,  tagline: 'Spiritual Capital', lat: 25.3176, lng: 82.9739 },
-        { id: 'mysore',  name: 'Mysore',  demand: 1.05, tagline: 'City of Palaces',   lat: 12.2958, lng: 76.6394 },
+        { id: 'jaipur', name: 'Jaipur', demand: 1.1, tagline: 'The Pink City', lat: 26.9124, lng: 75.7873 },
+        { id: 'delhi', name: 'Delhi', demand: 1.25, tagline: 'The Capital', lat: 28.6139, lng: 77.2090 },
+        { id: 'agra', name: 'Agra', demand: 1.15, tagline: 'City of Taj Mahal', lat: 27.1767, lng: 78.0081 },
+        { id: 'goa', name: 'Goa', demand: 1.4, tagline: 'Pearl of Orient', lat: 15.2993, lng: 74.1240 },
+        { id: 'mumbai', name: 'Mumbai', demand: 1.3, tagline: 'City of Dreams', lat: 19.0760, lng: 72.8777 },
+        { id: 'udaipur', name: 'Udaipur', demand: 1.1, tagline: 'City of Lakes', lat: 24.5854, lng: 73.7125 },
+        { id: 'varanasi', name: 'Varanasi', demand: 1.0, tagline: 'Spiritual Capital', lat: 25.3176, lng: 82.9739 },
+        { id: 'mysore', name: 'Mysore', demand: 1.05, tagline: 'City of Palaces', lat: 12.2958, lng: 76.6394 },
       ],
       DISTANCE_DEFAULTS: {
         '2hr': 15,
@@ -35,6 +35,7 @@ const seedConfig = async () => {
       PRICING_CONFIG: {
         ROAD_FACTOR: 1.2,
         ADVANCE_PERCENT: 0.3,
+        ADMIN_COMMISSION_PERCENT: 0.3,
         DESCRIPTION: "Total = (Distance Charge + Time Charge + Base Fee + Guide Fee) * City Demand Factor",
         FORMULA: "((km * globalPerKm) + (hours * globalPerHour) + globalBase + globalGuide) * cityDemand"
       },
