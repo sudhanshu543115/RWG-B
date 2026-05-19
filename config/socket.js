@@ -130,12 +130,19 @@ export const initSocket = (server) => {
 
         // Save in DB
         const newMessage = await Message.create({
-          conversationId: conversation._id,
-          senderId,
-          senderRole,
-          receiverId,
-          message
-        });
+  conversationId: conversation._id,
+  senderId,
+  senderRole,
+  receiverId,
+  message
+});
+
+const populatedMessage = await Message.findById(newMessage._id);
+
+io.to(`chat:${bookingId}`).emit(
+  "receive-message",
+  populatedMessage
+);
 
         // Emit to room
         io.to(`chat:${bookingId}`).emit(
