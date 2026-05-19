@@ -3,14 +3,17 @@ import {
     createBooking, 
     getBookings, 
     getBookingById, 
-    cancelBooking ,
-    rateRider
+    cancelBooking,
+    rateRider,
+    getBookingEstimate
 } from "./booking.controller.js";
 import { protectTourist } from "../../../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 router.use(protectTourist);
+
+router.post("/estimate", getBookingEstimate);
 
 router.route("/")
     .post(createBooking)
