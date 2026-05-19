@@ -10,14 +10,12 @@ const conversationSchema = new mongoose.Schema(
     },
 
     touristId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Tourist",
+      type: String,
       required: true
     },
 
     riderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Rider",
+      type: String,
       required: true
     },
 

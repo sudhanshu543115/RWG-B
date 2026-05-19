@@ -1,5 +1,7 @@
 import { Server } from "socket.io";
 import mongoose from "mongoose";
+import Message from "../models/chat/Message.js";
+import Conversation from "../models/chat/Conversation.js";
 
 let io;
 
@@ -87,98 +89,103 @@ export const initSocket = (server) => {
 
     // ================= CHAT SYSTEM =================
 
-// Join chat room
-socket.on("join-chat", ({ bookingId }) => {
+    // Join chat room
+    socket.on("join-chat", ({ bookingId }) => {
 
-  if (!bookingId) return;
+      if (!bookingId) return;
 
-  socket.join(`chat:${bookingId}`);
+      socket.join(`chat:${bookingId}`);
 
-  console.log(
-    `💬 SOCKET ${socket.id} JOINED CHAT ROOM: chat:${bookingId}`
-  );
-});
-
-
-// Send Message
-socket.on("send-message", async (data) => {
-  try {
-
-    const {
-      bookingId,
-      senderId,
-      senderRole,
-      receiverId,
-      message
-    } = data;
-
-    if (
-      !bookingId ||
-      !senderId ||
-      !receiverId ||
-      !message
-    ) {
-      return;
-    }
-
-    // Save in DB
-    const newMessage = await Message.create({
-      bookingId,
-      senderId,
-      senderRole,
-      receiverId,
-      message
+      console.log(
+        `💬 SOCKET ${socket.id} JOINED CHAT ROOM: chat:${bookingId}`
+      );
     });
 
-    // Emit to room
-    io.to(`chat:${bookingId}`).emit(
-      "receive-message",
-      newMessage
-    );
 
-    console.log("💬 NEW MESSAGE:", message);
+    // Send Message
+    socket.on("send-message", async (data) => {
+      try {
+        const {
+          bookingId,
+          senderId,
+          senderRole,
+          message
+        } = data;
 
-  } catch (error) {
-    console.error(
-      "❌ SEND MESSAGE ERROR:",
-      error.message
-    );
-  }
-});
+        if (
+          !bookingId ||
+          !senderId ||
+          !message
+        ) {
+          return;
+        }
 
+        const conversation = await Conversation.findOne({ bookingId });
+        if (!conversation) {
+          console.log("❌ Conversation not found for booking:", bookingId);
+          return;
+        }
 
-// Mark messages seen
-socket.on("mark-seen", async ({ bookingId, userId }) => {
+        const receiverId = senderRole === "tourist" ? conversation.riderId : conversation.touristId;
 
-  try {
+        // Save in DB
+        const newMessage = await Message.create({
+          conversationId: conversation._id,
+          senderId,
+          senderRole,
+          receiverId,
+          message
+        });
 
-    await Message.updateMany(
-      {
-        bookingId,
-        receiverId: userId,
-        seen: false
-      },
-      {
-        seen: true
+        // Emit to room
+        io.to(`chat:${bookingId}`).emit(
+          "receive-message",
+          newMessage
+        );
+
+        console.log("💬 NEW MESSAGE:", message);
+
+      } catch (error) {
+        console.error(
+          "❌ SEND MESSAGE ERROR:",
+          error.message
+        );
       }
-    );
+    });
 
-    io.to(`chat:${bookingId}`).emit(
-      "messages-seen",
-      {
-        bookingId,
-        userId
+
+    // Mark messages seen
+    socket.on("mark-seen", async ({ bookingId, userId }) => {
+      try {
+        const conversation = await Conversation.findOne({ bookingId });
+        if (!conversation) return;
+
+        await Message.updateMany(
+          {
+            conversationId: conversation._id,
+            receiverId: userId,
+            seen: false
+          },
+          {
+            seen: true
+          }
+        );
+
+        io.to(`chat:${bookingId}`).emit(
+          "messages-seen",
+          {
+            bookingId,
+            userId
+          }
+        );
+
+      } catch (error) {
+        console.error(
+          "❌ MARK SEEN ERROR:",
+          error.message
+        );
       }
-    );
-
-  } catch (error) {
-
-    console.error(
-      "❌ MARK SEEN ERROR:",
-      error.message
-    );
-  }
-});
+    });
 
 
 
