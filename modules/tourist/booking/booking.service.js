@@ -1,6 +1,137 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Settings from "../../../models/admin/Setting.js";
 import Rider from "../../../models/rider/Rider.js";
+import PlatformConfig from "../../../models/admin/PlatformConfig.js";
+
+// Calculates distance between two points in KM
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in km
+  return d;
+};
+
+// Calculates total route distance (Pickup -> Stop 1 -> Stop 2 ...) with breakdown
+const calculateRouteDistance = (pickup, stops = [], config = null) => {
+  const roadFactor = config?.PRICING_CONFIG?.ROAD_FACTOR || 1.2;
+  if (!stops || stops.length === 0) return { total: 0, segments: [] };
+  
+  let total = 0;
+  let segments = [];
+  let lastPoint = null;
+  let lastLabel = "Pickup";
+
+  if (pickup?.lat && pickup?.lng) {
+    lastPoint = { lat: pickup.lat, lng: pickup.lng };
+    lastLabel = "Pickup";
+  } else {
+    const firstStop = stops[0];
+    const fLat = firstStop?.location?.lat || firstStop?.lat;
+    const fLng = firstStop?.location?.lng || firstStop?.lng;
+    if (fLat && fLng) {
+      lastPoint = { lat: fLat, lng: fLng };
+      lastLabel = firstStop.name;
+    }
+  }
+
+  if (!lastPoint) return { total: 0, segments: [] };
+
+  stops.forEach((stop, index) => {
+    if (index === 0 && (!pickup?.lat || !pickup?.lng)) return;
+
+    const stopLat = stop.location?.lat || stop.lat;
+    const stopLng = stop.location?.lng || stop.lng;
+    
+    if (stopLat && stopLng) {
+      const dist = calculateDistance(lastPoint.lat, lastPoint.lng, stopLat, stopLng);
+      const roadDist = parseFloat((dist * roadFactor).toFixed(1)); 
+      
+      segments.push({
+        from: lastLabel,
+        to: stop.name,
+        distance: roadDist
+      });
+
+      total += roadDist;
+      lastPoint = { lat: stopLat, lng: stopLng };
+      lastLabel = stop.name;
+    }
+  });
+
+  return { 
+    total: parseFloat(total.toFixed(1)), 
+    segments,
+    roadFactorApplied: roadFactor
+  };
+};
+
+export const getBookingEstimateService = async (bookingData) => {
+    const config = await PlatformConfig.findOne();
+    if (!config) throw new Error("Platform configuration not found.");
+
+    const { city, durationType, pickupLocation, stops } = bookingData;
+
+    // Find city demand
+    const cityConfig = config.CITIES.find(c => c.id.toLowerCase() === city.toLowerCase() || c.name.toLowerCase() === city.toLowerCase());
+    const d = cityConfig?.demand || 1.0;
+
+    // Find hours from durationType
+    const rideTypeConfig = config.RIDE_TYPES.find(rt => rt.id === durationType);
+    let hoursBooked = rideTypeConfig?.hours || 5;
+    if (durationType === 'custom') {
+        hoursBooked = bookingData.totalHours || 8; 
+    }
+
+    // Calculate actual route distance
+    const { total: actualKm, segments } = calculateRouteDistance(pickupLocation, stops, config);
+
+    // Strictly use actual mapped distance, no default fallback
+    const km = actualKm;
+
+    const rates = config.GLOBAL_RATES;
+    const pConfig = config.PRICING_CONFIG;
+
+    const base = rates.base;
+    const dist = Math.round(km * rates.perKm);
+    const time = Math.round(hoursBooked * rates.perHour);
+    const guide = rates.guideFee;
+
+    const rawTotal = Math.round((dist + time + base + guide) * d);
+    const adminPercent = pConfig.ADMIN_COMMISSION_PERCENT !== undefined ? pConfig.ADMIN_COMMISSION_PERCENT : 0.3;
+    const advancePercent = pConfig.ADVANCE_PERCENT !== undefined ? pConfig.ADVANCE_PERCENT : 0.3;
+
+    const serviceFee = Math.round(rawTotal * adminPercent);
+    const rideFee = rawTotal - serviceFee;
+    const total = rawTotal;
+
+    return {
+        baseFare: base,
+        distanceCharge: dist, // note: backend schema uses distanceCost for this
+        timeCharge: time,
+        guideFee: guide,      // note: backend schema uses guideServiceFee for this
+        rideFee,
+        serviceFee,
+        totalFee: total,      // note: backend schema uses totalAmount for this
+        totalDistance: km,
+        distanceSegments: segments,
+        demandMult: d,
+        advanceAmount: Math.round(total * advancePercent),
+        calculationMethod: {
+            formula: pConfig.FORMULA,
+            description: pConfig.DESCRIPTION,
+            roadFactor: pConfig.ROAD_FACTOR,
+            adminCommission: adminPercent,
+            isRealRoute: actualKm > 0
+        }
+    };
+};
 
 export const createBookingService = async (userId, bookingData) => {
     const {

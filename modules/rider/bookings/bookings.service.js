@@ -11,7 +11,7 @@ import User from "../../../models/tourist/User.js";
 export const getPendingBookingsForRider = async (riderId) => {
     const rider = await Rider.findById(riderId);
 
-    if (!rider) {
+    if (!rider) { 
         throw new Error("Rider not found.");
     }
 
@@ -200,6 +200,9 @@ export const completeRideService = async (riderId, bookingId) => {
         await creditRiderWallet(riderId, booking); // 💰 Add to wallet
     }
 
+    // Instantly mark the ride as completed
+    booking.bookingStatus = "completed";
+
     await booking.save();
 
     return { booking, paymentLink, paymentLinkId, remainingAmount: remaining };
@@ -209,7 +212,8 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
     const booking = await Booking.findOne({ _id: bookingId, riderId });
     if (!booking) throw new Error("Booking not found.");
 
-    if (booking.bookingStatus === "completed") return booking;
+    // If payment is already 100% paid, no need to verify again
+    if (booking.payment.status === "paid") return booking;
 
     const paymentLinkId = booking.payment.remainingOrderId;
 
@@ -227,7 +231,7 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
 
     if (paymentLink.status === 'paid') {
         const finalAmount = booking.payment.remainingAmount || 0;
-        
+
         booking.bookingStatus = "completed";
         booking.payment.status = "paid"; // Final 100% status
         booking.payment.amountPaid = (booking.payment.amountPaid || 0) + finalAmount;
@@ -252,9 +256,9 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
     }
 );
         await creditRiderWallet(riderId, booking); // 💰 Add to wallet
-        
-         // ✅ SOCKET EMIT TO RIDER
-    notifyRiderPaymentCompleted(booking, riderId);
+
+        // ✅ SOCKET EMIT TO RIDER
+        notifyRiderPaymentCompleted(booking, riderId);
         return booking;
     } else {
         throw new Error("Payment is not yet completed by the tourist.");
@@ -264,7 +268,7 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
 const creditRiderWallet = async (riderId, booking) => {
     try {
         console.log(`[CREDIT_WALLET_START] Processing for Rider: ${riderId}, Booking: ${booking._id}`);
-        
+
         const total = booking.pricing?.totalAmount || 0;
         const platformFee = booking.pricing?.serviceFee || 0;
         const riderEarning = total - platformFee;

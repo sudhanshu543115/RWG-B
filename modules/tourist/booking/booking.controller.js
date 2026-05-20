@@ -3,9 +3,27 @@ import {
     getBookingsService, 
     getBookingByIdService, 
     cancelBookingService ,
-    rateRiderService
+    rateRiderService,
+    getBookingEstimateService
 } from "./booking.service.js";
 import { notifyMatchedRidersNewBooking, notifyRidersBookingCancelled, notifyAdminBookingCancelled } from "../../../core/socket.events.js";
+
+export const getBookingEstimate = async (req, res) => {
+    try {
+        const estimate = await getBookingEstimateService(req.body);
+        return res.status(200).json({
+            success: true,
+            message: "Estimate calculated successfully.",
+            data: estimate
+        });
+    } catch (error) {
+        console.error("Error in getBookingEstimate:", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to calculate estimate."
+        });
+    }
+};
 
 export const createBooking = async (req, res) => {
     try {
