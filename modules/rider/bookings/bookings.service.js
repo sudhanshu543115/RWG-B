@@ -5,13 +5,13 @@ import { notifyAdminRiderInterested, notifyRiderPaymentCompleted } from "../../.
 import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
 import razorpay from "../../../config/razorpay.js";
-
+import User from "../../../models/tourist/User.js";
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
     const rider = await Rider.findById(riderId);
 
-    if (!rider) {
+    if (!rider) { 
         throw new Error("Rider not found.");
     }
 
@@ -157,11 +157,34 @@ export const completeRideService = async (riderId, bookingId) => {
         .populate("touristId", "name phone");
 
     if (!booking) throw new Error("Booking not found or not assigned to you.");
-    if (booking.bookingStatus !== "ongoing") throw new Error("Only ongoing rides can be completed.");
+   if (
+    booking.bookingStatus !== "ongoing" &&
+    booking.bookingStatus !== "completed"
+)throw new Error("Only ongoing rides can be completed.");
 
     const total = booking.pricing?.totalAmount || 0;
     const advance = booking.pricing?.advanceAmount || 0;
     const remaining = Math.max(total - advance, 0);
+    // ✅ If already completed and unpaid,
+// return existing payment link instead of creating new one
+
+if (
+    booking.bookingStatus === "completed" &&
+    booking.payment?.remainingOrderId &&
+    booking.payment?.status !== "paid"
+) {
+
+    const existingPaymentLink = await razorpay.paymentLink.fetch(
+        booking.payment.remainingOrderId
+    );
+
+    return {
+        booking,
+        paymentLink: existingPaymentLink.short_url,
+        paymentLinkId: existingPaymentLink.id,
+        remainingAmount: booking.payment.remainingAmount || remaining
+    };
+}
 
     console.log(`[PAYMENT_DEBUG] Booking: ${bookingId}, Total: ${total}, Advance: ${advance}, Remaining: ${remaining}`);
 
@@ -190,7 +213,13 @@ export const completeRideService = async (riderId, bookingId) => {
         booking.payment.remainingOrderId = paymentLinkId;
         booking.payment.remainingAmount = remaining;
     } else {
-        booking.payment.status = "paid";
+        booking.bookingStatus = "completed";
+        await User.findByIdAndUpdate(
+    booking.touristId,
+    {
+        $inc: { tripsCount: 1 }
+    }
+);
         await creditRiderWallet(riderId, booking); // 💰 Add to wallet
     }
 
@@ -243,7 +272,12 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
         });
 
         await booking.save();
-
+        await User.findByIdAndUpdate(
+    booking.touristId,
+    {
+        $inc: { tripsCount: 1 }
+    }
+);
         await creditRiderWallet(riderId, booking); // 💰 Add to wallet
 
         // ✅ SOCKET EMIT TO RIDER

@@ -27,7 +27,7 @@ export const getRiderEarningsService = async (riderId) => {
 
     totals.avgPerTrip = totals.totalRides > 0
         ? Math.round(totals.totalEarnings / totals.totalRides)
-        : 0;
+        : 0; 
 
     // ── 2. THIS WEEK EARNINGS ──────────────────────
     const now = new Date();
