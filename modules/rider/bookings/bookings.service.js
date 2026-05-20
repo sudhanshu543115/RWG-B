@@ -5,7 +5,7 @@ import { notifyAdminRiderInterested, notifyRiderPaymentCompleted } from "../../.
 import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
 import razorpay from "../../../config/razorpay.js";
-
+import User from "../../../models/tourist/User.js";
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
@@ -191,6 +191,12 @@ export const completeRideService = async (riderId, bookingId) => {
         booking.payment.remainingAmount = remaining;
     } else {
         booking.bookingStatus = "completed";
+        await User.findByIdAndUpdate(
+    booking.touristId,
+    {
+        $inc: { tripsCount: 1 }
+    }
+);
         await creditRiderWallet(riderId, booking); // 💰 Add to wallet
     }
 
@@ -239,7 +245,12 @@ export const verifyAndCompleteRideService = async (riderId, bookingId) => {
         });
 
         await booking.save();
-        
+        await User.findByIdAndUpdate(
+    booking.touristId,
+    {
+        $inc: { tripsCount: 1 }
+    }
+);
         await creditRiderWallet(riderId, booking); // 💰 Add to wallet
         
          // ✅ SOCKET EMIT TO RIDER
