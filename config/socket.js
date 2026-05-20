@@ -137,17 +137,11 @@ export const initSocket = (server) => {
   message
 });
 
-const populatedMessage = await Message.findById(newMessage._id);
+        const populatedMessage = await Message.findById(newMessage._id);
 
-io.to(`chat:${bookingId}`).emit(
-  "receive-message",
-  populatedMessage
-);
-
-        // Emit to room
         io.to(`chat:${bookingId}`).emit(
           "receive-message",
-          newMessage
+          populatedMessage
         );
 
         console.log("💬 NEW MESSAGE:", message);
