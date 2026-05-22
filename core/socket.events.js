@@ -1,5 +1,6 @@
 import { SOCKET_EVENTS } from './constants.js';
 import Rider from '../models/rider/Rider.js';
+import { createNotification } from "../modules/notification/notification.service.js";
 
 let _io;
 
@@ -52,9 +53,21 @@ async function notifyMatchedRidersNewBooking(booking) {
       message: `New ${booking.durationType} tour request in ${booking.city}!`
     };
 
+    // After the emitToRoom line, add:
     matchedRiders.forEach((rider) => {
       emitToRoom(`rider:${rider._id}`, "new-booking", payload);
+
+      // 🔔 Save notification
+      createNotification({
+        recipientId: rider._id,
+        recipientRole: "rider",
+        type: "new_booking",
+        title: "New Booking Available",
+        message: `New ${booking.durationType} tour request in ${booking.city}!`,
+        bookingId: booking._id,
+      });
     });
+
   } catch (error) {
     console.error("Socket emit error for matched riders:", error.message);
   }
@@ -108,7 +121,17 @@ function notifyTouristRiderAssigned(booking, rider) {
     emitToRoom(
       `tourist:${touristId}`,
       "rider-assigned",
-      payload
+      payload,
+      // 🔔 Save notification
+      createNotification({
+        recipientId: touristId,
+        recipientRole: "tourist",
+        type: "rider_assigned",
+        title: "Rider Assigned",
+        message: `Your ride has been assigned to ${rider.name}`,
+        bookingId: booking._id,
+      })
+
     );
 
     console.log("📡 NOTIFIED TOURIST:", touristId);
@@ -134,7 +157,16 @@ function notifyRiderAssigned(booking, rider) {
     emitToRoom(
       `rider:${rider._id}`,
       "ride-assigned",   // 👈 event name
-      payload
+      payload,
+      createNotification({
+        recipientId: rider._id,
+        recipientRole: "rider",
+        type: "rider_assigned",
+        title: "New Ride Assigned",
+        message: `You have been assigned for a ride in ${booking.city}`,
+        bookingId: booking._id,
+      })
+
     );
 
     console.log("📡 NOTIFIED RIDER:", rider._id);
@@ -158,7 +190,19 @@ function notifyRidersBookingCancelled(booking) {
     // 2. Notify all interested riders (to clear their UI)
     if (booking.interestedRiders && booking.interestedRiders.length > 0) {
       booking.interestedRiders.forEach(item => {
-        emitToRoom(`rider:${item.riderId}`, "booking-cancelled", payload);
+        emitToRoom(`rider:${item.riderId}`, "booking-cancelled", payload,);
+        // For the assigned rider:
+        if (booking.riderId) {
+          createNotification({
+            recipientId: booking.riderId,
+            recipientRole: "rider",
+            type: "booking_cancelled",
+            title: "Booking Cancelled",
+            message: `The booking in ${booking.city} has been cancelled.`,
+            bookingId: booking._id,
+          });
+        }
+
       });
     }
   } catch (error) {
@@ -172,6 +216,16 @@ function notifyAdminBookingCancelled(booking) {
       bookingId: booking._id,
       message: `Booking #${booking._id} was cancelled by the tourist.`
     });
+    // For admin, use a fixed admin user ID or skip recipientId
+    createNotification({
+      recipientId: "admin",
+      recipientRole: "admin",
+      type: "booking_cancelled",
+      title: "Booking Cancelled",
+      message: `Booking #${booking._id} was cancelled by the tourist.`,
+      bookingId: booking._id,
+    });
+
   } catch (error) {
     console.error("❌ Admin cancellation notify error:", error.message);
   }
@@ -211,8 +265,20 @@ function notifyTouristRideCompleted(booking) {
     emitToRoom(`tourist:${touristId}`, "ride-completed", {
       bookingId: booking._id,
       message: "Your tour has been completed! Please rate your guide."
+
     });
+    // Save notification
+    createNotification({
+      recipientId: touristId,
+      recipientRole: "tourist",
+      type: "ride_completed",
+      title: "Ride Completed",
+      message: "Your tour has been completed! Please rate your guide.",
+      bookingId: booking._id,
+    });
+
     console.log("📡 NOTIFIED TOURIST OF COMPLETION:", touristId);
+
   } catch (error) {
     console.error("❌ Completion notify error:", error.message);
   }
@@ -224,6 +290,15 @@ function notifyRiderPayoutProcessed(riderId, amount) {
       message: `Your payout of ₹${amount} has been processed successfully!`,
       amount
     });
+
+    createNotification({
+      recipientId: riderId,
+      recipientRole: "rider",
+      type: "payout_processed",
+      title: "Payout Successful",
+      message: `Your payout of ₹${amount} has been processed!`,
+    });
+
   } catch (error) {
     console.error("❌ Payout processed notify error:", error.message);
   }
@@ -235,10 +310,21 @@ function notifyRiderPayoutRejected(riderId, amount) {
       message: `Your payout request for ₹${amount} was rejected. The amount has been returned to your available balance.`,
       amount
     });
+    createNotification({
+      recipientId: riderId,
+      recipientRole: "rider",
+      type: "payout_rejected",
+      title: "Payout Rejected",
+      message: `Your payout request for ₹${amount} was rejected.`,
+    });
+
   } catch (error) {
     console.error("❌ Payout rejected notify error:", error.message);
   }
 }
+
+
+
 
 export {
   initSocketEvents,
