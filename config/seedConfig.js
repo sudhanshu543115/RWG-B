@@ -68,7 +68,7 @@ const seedConfig = async () => {
         cancelled: { label: 'Cancelled', color: 'red', dot: '#DC2626' },
       },
       CITY_STOPS: {
-        jaipur: [
+        jaipur: [ 
           { name: 'Amber Fort', duration: 90, category: 'Heritage', lat: 26.9855, lng: 75.8513 },
           { name: 'Hawa Mahal', duration: 45, category: 'Monument', lat: 26.9239, lng: 75.8267 },
           { name: 'City Palace', duration: 75, category: 'Royal', lat: 26.9258, lng: 75.8237 },
@@ -84,6 +84,7 @@ const seedConfig = async () => {
           { name: "Humayun's Tomb", duration: 60, category: 'Mughal', lat: 28.5933, lng: 77.2507 },
           { name: 'Chandni Chowk', duration: 90, category: 'Market', lat: 28.6505, lng: 77.2303 },
           { name: 'Lotus Temple', duration: 45, category: 'Spiritual', lat: 28.5535, lng: 77.2588 },
+          { name: "Pari Chowk", duration: 45, category: 'Spiritual', lat: 28.465258, lng: 77.510928 },
         ],
         agra: [
           { name: 'Taj Mahal', duration: 120, category: 'Wonder', lat: 27.1751, lng: 78.0421 },

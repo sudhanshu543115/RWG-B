@@ -9,6 +9,9 @@ import riderBookingRoutes from "../modules/rider/bookings/bookings.routes.js";
 import riderEarningsRoutes from "../modules/rider/earnings/earnings.routes.js";
 import riderStatsRoutes from "../modules/rider/stats/stats.routes.js";
 
+import notificationRoutes from "../modules/notification/notification.routes.js";
+import { protectAny } from "../middleware/auth.middleware.js";
+
 
 import touristPaymentRoutes from "../modules/tourist/payment/payment.routes.js";
 
@@ -59,7 +62,7 @@ router.use("/api/rider/payment-method", riderPaymentMethodRoutes);
 
 
 
-
+router.use("/api/notifications", protectAny, notificationRoutes);
 
 
 // Admin Routes
