@@ -134,11 +134,23 @@ export const getBookingEstimateService = async (bookingData) => {
 };
 
 export const createBookingService = async (userId, bookingData) => {
-    const {
+    let {
         city, date, startTime, endTime, durationType,
         totalHours, pickupLocation, language, genderPreference,
         stops, specialRequest, pricing, payment, vehicleType
     } = bookingData;
+
+    if (durationType !== 'custom' && startTime) {
+        const config = await PlatformConfig.findOne();
+        const rideTypeConfig = config?.RIDE_TYPES.find(rt => rt.id === durationType);
+        const hoursToAdd = rideTypeConfig?.hours || 5;
+        
+        const [h, m] = startTime.split(':').map(Number);
+        const endH = (h + hoursToAdd) % 24;
+        
+        endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        totalHours = hoursToAdd;
+    }
 
     const newBooking = new Booking({
         touristId: userId,
