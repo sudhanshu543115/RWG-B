@@ -1,4 +1,5 @@
 import PlatformConfig from "../../../models/admin/PlatformConfig.js";
+import { geocodeLocation } from "../../../core/geocodeLocation.js";
 
 export const getPlatformConfig = async (req, res) => {
   try {
@@ -77,23 +78,62 @@ export const deleteCity = async (req, res) => {
 export const addStopToCity = async (req, res) => {
   try {
     const { cityId } = req.params;
-    const newStop = req.body; // { name, duration, category, lat, lng }
-    
-    const config = await PlatformConfig.findOne().sort({ createdAt: -1 });
-    if (!config) throw new Error("Config not found");
+    const { name, duration, category } = req.body;
 
-    // Get the current stops for the city
+    const config = await PlatformConfig.findOne().sort({ createdAt: -1 });
+
+    if (!config) {
+      throw new Error("Config not found");
+    }
+
+    // Find city name
+    const city = config.CITIES.find(c => c.id === cityId);
+
+    if (!city) {
+      return res.status(404).json({
+        success: false,
+        message: "City not found"
+      });
+    }
+
+    // Get coordinates automatically
+    const coordinates = await geocodeLocation(name, city.name);
+
+    if (!coordinates) {
+      return res.status(400).json({
+        success: false,
+        message: "Unable to fetch coordinates"
+      });
+    }
+
+    const newStop = {
+      name,
+      duration,
+      category,
+      lat: coordinates.lat,
+      lng: coordinates.lng
+    };
+
     let stops = config.CITY_STOPS.get(cityId) || [];
+
     stops.push(newStop);
-    
-    // Update the map
+
     config.CITY_STOPS.set(cityId, stops);
 
     await config.save();
-    res.status(200).json({ success: true, data: stops });
+
+    res.status(200).json({
+      success: true,
+      data: stops
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
+  
 };
 
 export const deleteStopFromCity = async (req, res) => {
