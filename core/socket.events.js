@@ -217,14 +217,7 @@ function notifyAdminBookingCancelled(booking) {
       message: `Booking #${booking._id} was cancelled by the tourist.`
     });
     // For admin, use a fixed admin user ID or skip recipientId
-    createNotification({
-      recipientId: "admin",
-      recipientRole: "admin",
-      type: "booking_cancelled",
-      title: "Booking Cancelled",
-      message: `Booking #${booking._id} was cancelled by the tourist.`,
-      bookingId: booking._id,
-    });
+    // Skipped createNotification for admin because recipientId requires a valid ObjectId
 
   } catch (error) {
     console.error("❌ Admin cancellation notify error:", error.message);
