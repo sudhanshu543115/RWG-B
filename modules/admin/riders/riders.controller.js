@@ -1,4 +1,4 @@
-import { getAllRidersService, updateRiderStatusService, getPendingRidersService, deleteRiderService } from "./riders.service.js";
+import { getAllRidersService, updateRiderStatusService, getPendingRidersService, deleteRiderService , getRiderCompleteHistoryService} from "./riders.service.js";
 import sendEmail from "../../../core/mailer.js";
 import path from "path";
 import fs from "fs";
@@ -157,5 +157,32 @@ export const deleteRider = async (req, res) => {
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
+};
+
+export const getRiderCompleteHistoryController = async (req, res) => {
+
+  try {
+
+    const { riderId } = req.params;
+
+    const data = await getRiderCompleteHistoryService(riderId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Rider complete history fetched successfully",
+      data
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
+  }
+
 };
 
