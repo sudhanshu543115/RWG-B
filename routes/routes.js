@@ -82,9 +82,13 @@ router.use(
 router.use("/api/admin/search", searchRoutes);
 
 
+import supportRoutes from "../modules/support/support.routes.js";
+
 // Admin Earnings
 router.use("/api/admin/earnings", adminEarningsRoutes);
 
+// Support Routes
+router.use("/api/support", supportRoutes);
 
 // chat Routes
 
