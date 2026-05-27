@@ -3,7 +3,8 @@ import {
     getPendingTouristsService,
     updateTouristService,
     deleteTouristService,
-    getTouristByIdService
+    getTouristByIdService,
+    getTouristBookingHistoryService
 } from "./tourists.service.js";
 
 // GET ALL
@@ -54,4 +55,27 @@ export const deleteTourist = async (req, res) => {
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
+};
+
+
+export const getTouristBookingHistoryController = async (req, res) => {
+  try {
+    const { touristId } = req.params;
+
+    const data = await getTouristBookingHistoryService(touristId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Tourist booking history fetched successfully",
+      data
+    });
+
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
 };
