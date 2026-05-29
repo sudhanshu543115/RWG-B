@@ -8,6 +8,7 @@ import riderProfileRoutes from "../modules/rider/profile/profile.routes.js";
 import riderBookingRoutes from "../modules/rider/bookings/bookings.routes.js";
 import riderEarningsRoutes from "../modules/rider/earnings/earnings.routes.js";
 import riderStatsRoutes from "../modules/rider/stats/stats.routes.js";
+import riderConfigRoutes from "../modules/rider/config/config.routes.js";
 
 import notificationRoutes from "../modules/notification/notification.routes.js";
 import { protectAny } from "../middleware/auth.middleware.js";
@@ -56,6 +57,7 @@ router.use("/api/payment", touristPaymentRoutes);
 router.use("/api/rider/bookings", riderBookingRoutes);
 router.use("/api/rider/earnings", riderEarningsRoutes);
 router.use("/api/rider/stats", riderStatsRoutes);
+router.use("/api/rider/config", riderConfigRoutes);
 router.use("/api/rider/withdrawal", riderWithdrawalRoutes);
 router.use("/api/rider/payment-method", riderPaymentMethodRoutes);
 
