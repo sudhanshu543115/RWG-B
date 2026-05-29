@@ -76,24 +76,53 @@ export const getBookingEstimateService = async (bookingData) => {
     const config = await PlatformConfig.findOne();
     if (!config) throw new Error("Platform configuration not found.");
 
-    const { city, durationType, pickupLocation, stops } = bookingData;
+    console.log('🔎 Estimate payload:', bookingData);
 
-    // Find city demand
-    const cityConfig = config.CITIES.find(c => c.id.toLowerCase() === city.toLowerCase() || c.name.toLowerCase() === city.toLowerCase());
+    // Extract fields – support both `cityId` (new) and legacy `city`
+    const { cityId, city, durationType, pickupLocation, stops, actualKm, segments } = bookingData;
+    const cityValue = cityId || city;
+    // Ensure city is a string before lowercasing
+    const cityStr = cityValue ? String(cityValue) : '';
+    const cityConfig = config.CITIES.find(c => c.id.toLowerCase() === cityStr.toLowerCase() || c.name.toLowerCase() === cityStr.toLowerCase());
     const d = cityConfig?.demand || 1.0;
 
     // Find hours from durationType
     const rideTypeConfig = config.RIDE_TYPES.find(rt => rt.id === durationType);
     let hoursBooked = rideTypeConfig?.hours || 5;
     if (durationType === 'custom') {
-        hoursBooked = bookingData.totalHours || 8; 
+        if (bookingData.totalHours) {
+            hoursBooked = bookingData.totalHours;
+        } else if (bookingData.startTime && bookingData.endTime) {
+            // Parse AM/PM format times to calculate hours
+            const parseTime = (t) => {
+                const [time, period] = t.split(' ');
+                let [h, m] = time.split(':').map(Number);
+                if (period === 'PM' && h !== 12) h += 12;
+                if (period === 'AM' && h === 12) h = 0;
+                return h + (m || 0) / 60;
+            };
+            let diff = parseTime(bookingData.endTime) - parseTime(bookingData.startTime);
+            if (diff < 0) diff += 24;
+            hoursBooked = Math.max(1, Math.round(diff));
+        } else {
+            hoursBooked = 8;
+        }
     }
 
-    // Calculate actual route distance
-    const { total: actualKm, segments } = calculateRouteDistance(pickupLocation, stops, config);
+    // Normalize stop locations to ensure lat/lng are present
+    const normalizedStops = (stops || []).map(stop => {
+      const lat = stop.location?.lat ?? stop.lat;
+      const lng = stop.location?.lng ?? stop.lng;
+      return {
+        ...stop,
+        location: { lat, lng }
+      };
+    });
 
-    // Strictly use actual mapped distance, no default fallback
-    const km = actualKm;
+    // Calculate distance – if no stops but client supplied `actualKm`, use that
+    const distanceResult = calculateRouteDistance(pickupLocation, normalizedStops, config);
+    const km = (normalizedStops.length === 0 && actualKm != null) ? actualKm : distanceResult.total;
+    const segs = (normalizedStops.length === 0 && segments != null) ? segments : distanceResult.segments;
 
     const rates = config.GLOBAL_RATES;
     const pConfig = config.PRICING_CONFIG;
@@ -120,7 +149,7 @@ export const getBookingEstimateService = async (bookingData) => {
         serviceFee,
         totalFee: total,      // note: backend schema uses totalAmount for this
         totalDistance: km,
-        distanceSegments: segments,
+        distanceSegments: segs,
         demandMult: d,
         advanceAmount: Math.round(total * advancePercent),
         calculationMethod: {
@@ -128,7 +157,7 @@ export const getBookingEstimateService = async (bookingData) => {
             description: pConfig.DESCRIPTION,
             roadFactor: pConfig.ROAD_FACTOR,
             adminCommission: adminPercent,
-            isRealRoute: actualKm > 0
+            isRealRoute: km > 0
         }
     };
 };

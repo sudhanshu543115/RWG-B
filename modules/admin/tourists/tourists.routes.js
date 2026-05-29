@@ -4,7 +4,8 @@ import {
     getPendingTourists,
     updateTourist,
     deleteTourist,
-    getTouristById
+    getTouristById,
+    getTouristBookingHistoryController
 } from "./tourists.controller.js";
 
 import { protectAdmin } from "../../../middleware/auth.middleware.js";
@@ -21,5 +22,9 @@ router.get("/:id", getTouristById);
 
 router.patch("/:id", updateTourist);
 router.delete("/:id", deleteTourist);
+router.get(
+  "/:touristId/bookings",
+  getTouristBookingHistoryController
+);
 
 export default router;

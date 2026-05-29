@@ -70,7 +70,7 @@ export const getBookingById = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in getBookingById:", error);
-        return res.status(404).json({
+        return res.status(404).json({ 
             success: false,
             message: error.message || "Booking not found."
         });
