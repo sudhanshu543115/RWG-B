@@ -13,7 +13,7 @@ const payoutSchema = new mongoose.Schema({
       ref: "PaymentMethod"
    },
 
-   amount: {
+   amount: {   
       type: Number,
       required: true
    },

@@ -169,83 +169,16 @@ export const createBookingService = async (userId, bookingData) => {
         stops, specialRequest, pricing, payment, vehicleType
     } = bookingData;
 
-    // --- Server-side pricing recalculation (never trust frontend pricing) ---
-    const config = await PlatformConfig.findOne();
-    if (config) {
-        // Determine hours
-        const rideTypeConfig = config.RIDE_TYPES.find(rt => rt.id === durationType);
-        let hoursBooked = rideTypeConfig?.hours || 5;
-
-        if (durationType === 'custom') {
-            if (totalHours) {
-                hoursBooked = totalHours;
-            } else if (startTime && endTime) {
-                const parseTime = (t) => {
-                    const [time, period] = t.split(' ');
-                    let [h, m] = time.split(':').map(Number);
-                    if (period === 'PM' && h !== 12) h += 12;
-                    if (period === 'AM' && h === 12) h = 0;
-                    return h + (m || 0) / 60;
-                };
-                let diff = parseTime(endTime) - parseTime(startTime);
-                if (diff < 0) diff += 24;
-                hoursBooked = Math.max(1, Math.round(diff));
-            }
-        }
-
-        // Auto-calculate endTime for non-custom ride types
-        if (durationType !== 'custom' && startTime) {
-            const hoursToAdd = rideTypeConfig?.hours || 5;
-            const parseTime = (t) => {
-                const [time, period] = t.split(' ');
-                let [h, m] = time.split(':').map(Number);
-                if (period === 'PM' && h !== 12) h += 12;
-                if (period === 'AM' && h === 12) h = 0;
-                return { h, m };
-            };
-            const { h, m } = parseTime(startTime);
-            const endH = (h + hoursToAdd) % 24;
-            const suffix = endH >= 12 ? 'PM' : 'AM';
-            const twelveH = endH % 12 || 12;
-            endTime = `${String(twelveH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${suffix}`;
-            totalHours = hoursToAdd;
-        }
-
-        // City demand
-        const cityConfig = config.CITIES.find(c =>
-            c.id.toLowerCase() === city.toLowerCase() || c.name.toLowerCase() === city.toLowerCase()
-        );
-        const d = cityConfig?.demand || 1.0;
-
-        // Route distance
-        const { total: actualKm, segments } = calculateRouteDistance(pickupLocation, stops, config);
-
-        // Pricing calculation
-        const rates = config.GLOBAL_RATES;
-        const pConfig = config.PRICING_CONFIG;
-        const base = rates.base;
-        const dist = Math.round(actualKm * rates.perKm);
-        const time = Math.round(hoursBooked * rates.perHour);
-        const guide = rates.guideFee;
-        const rawTotal = Math.round((dist + time + base + guide) * d);
-        const adminPercent = pConfig.ADMIN_COMMISSION_PERCENT ?? 0.3;
-        const advancePercent = pConfig.ADVANCE_PERCENT ?? 0.3;
-        const serviceFee = Math.round(rawTotal * adminPercent);
-        const rideFee = rawTotal - serviceFee;
-
-        pricing = {
-            baseFare: base,
-            distanceCost: dist,
-            timeCharge: time,
-            guideServiceFee: guide,
-            serviceFee,
-            rideFee,
-            totalAmount: rawTotal,
-            totalDistance: actualKm,
-            distanceSegments: segments,
-            demandMultiplier: d,
-            advanceAmount: Math.round(rawTotal * advancePercent),
-        };
+    if (durationType !== 'custom' && startTime) {
+        const config = await PlatformConfig.findOne();
+        const rideTypeConfig = config?.RIDE_TYPES.find(rt => rt.id === durationType);
+        const hoursToAdd = rideTypeConfig?.hours || 5;
+        
+        const [h, m] = startTime.split(':').map(Number);
+        const endH = (h + hoursToAdd) % 24;
+        
+        endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        totalHours = hoursToAdd;
     }
 
     const newBooking = new Booking({

@@ -25,13 +25,7 @@ const seedConfig = async () => {
         { id: 'varanasi', name: 'Varanasi', demand: 1.0, tagline: 'Spiritual Capital', lat: 25.3176, lng: 82.9739 },
         { id: 'mysore', name: 'Mysore', demand: 1.05, tagline: 'City of Palaces', lat: 12.2958, lng: 76.6394 },
       ],
-      DISTANCE_DEFAULTS: {
-        '2hr': 15,
-        '5hr': 35,
-        'fullday': 70,
-        'custom': 25,
-        'default': 30
-      },
+
       PRICING_CONFIG: {
         ROAD_FACTOR: 1.2,
         ADVANCE_PERCENT: 0.3,
@@ -50,7 +44,7 @@ const seedConfig = async () => {
       PAYMENT_METHODS: [
         { id: 'upi', label: 'UPI', sub: 'PhonePe · GPay · Paytm · BHIM', icon: '⚡' },
         { id: 'card', label: 'Credit/Debit Card', sub: 'Visa · Mastercard · RuPay', icon: '💳' },
-        { id: 'wallet', label: 'RwG Wallet', sub: 'Instant · Zero charges', icon: '👜' },
+       // { id: 'wallet', label: 'RwG Wallet', sub: 'Instant · Zero charges', icon: '👜' },
         { id: 'netbank', label: 'Net Banking', sub: 'All major Indian banks', icon: '🏦' },
       ],
       UPI_APPS: [

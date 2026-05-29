@@ -15,10 +15,7 @@ const platformConfigSchema = new mongoose.Schema({
     lat: Number,
     lng: Number
   }],
-  DISTANCE_DEFAULTS: {
-    type: Map,
-    of: Number
-  },
+
   PRICING_CONFIG: {
     ROAD_FACTOR: { type: Number, default: 1.2 },
     ADVANCE_PERCENT: { type: Number, default: 0.3 },
