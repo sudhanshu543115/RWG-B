@@ -59,8 +59,9 @@ export const protectRider = async (req, res, next) => {
         // --- ENFORCE PROFILE COMPLETION ---
         const isProfileRoute = req.originalUrl.includes("/api/rider/profile");
         const isAuthRoute = req.originalUrl.includes("/api/rider/auth");
+        const isRiderConfigRoute = req.originalUrl.includes("/api/rider/config");
 
-        if (!rider.profileCompleted && !isProfileRoute && !isAuthRoute) {
+        if (!rider.profileCompleted && !isProfileRoute && !isAuthRoute && !isRiderConfigRoute) {
             return res.status(403).json({
                 success: false,
                 message: "Profile incomplete. Please complete your profile first.",
@@ -69,7 +70,7 @@ export const protectRider = async (req, res, next) => {
         }
 
         // --- ENFORCE ADMIN APPROVAL ---
-        const isOperationalRoute = !isProfileRoute && !isAuthRoute;
+        const isOperationalRoute = !isProfileRoute && !isAuthRoute && !isRiderConfigRoute;
 
         if (isOperationalRoute && rider.verificationStatus !== "approved") {
             return res.status(403).json({
