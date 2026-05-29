@@ -40,7 +40,22 @@ export const verifyRiderOtpService = async (phone, otp) => {
 
     return {
         token,
+        rider: {
+            _id: rider._id,
+            name: rider.name,
+            phone: rider.phone,
+            email: rider.email,
+            city: rider.city,
+            profileImage: rider.profileImage,
+            vehicleType: rider.vehicleType,
+            verificationStatus: rider.verificationStatus,
+            profileCompleted: rider.profileCompleted,
+            isVerified: rider.isVerified,
+            rating: rider.rating,
+            totalRides: rider.totalRides,
+        },
         isProfileComplete: !!rider.profileCompleted,
-        isVerified: !!rider.isVerified
+        isVerified: !!rider.isVerified,
+        verificationStatus: rider.verificationStatus
     };
 };

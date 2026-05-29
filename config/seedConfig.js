@@ -44,7 +44,7 @@ const seedConfig = async () => {
       PAYMENT_METHODS: [
         { id: 'upi', label: 'UPI', sub: 'PhonePe · GPay · Paytm · BHIM', icon: '⚡' },
         { id: 'card', label: 'Credit/Debit Card', sub: 'Visa · Mastercard · RuPay', icon: '💳' },
-        { id: 'wallet', label: 'RwG Wallet', sub: 'Instant · Zero charges', icon: '👜' },
+       // { id: 'wallet', label: 'RwG Wallet', sub: 'Instant · Zero charges', icon: '👜' },
         { id: 'netbank', label: 'Net Banking', sub: 'All major Indian banks', icon: '🏦' },
       ],
       UPI_APPS: [
