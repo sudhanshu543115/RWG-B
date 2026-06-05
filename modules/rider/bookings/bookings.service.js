@@ -1,7 +1,7 @@
 import Booking from "../../../models/tourist/Booking.js";
 import Rider from "../../../models/rider/Rider.js";
 import Admin from "../../../models/admin/Admin.js";
-import { notifyAdminRiderInterested, notifyRiderPaymentCompleted } from "../../../core/socket.events.js";
+import { notifyAdminRiderInterested, notifyRiderPaymentCompleted, notifyRideTrackingUpdated } from "../../../core/socket.events.js";
 import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
 import razorpay from "../../../config/razorpay.js";
@@ -143,7 +143,18 @@ export const startRideService = async (riderId, bookingId, enteredOtp) => {
     }
 
     booking.bookingStatus = "ongoing";
+    if (!booking.tracking) booking.tracking = {};
+    booking.tracking.currentStage = "trip_started";
+    booking.tracking.stages.push({
+        stage: "trip_started",
+        timestamp: new Date()
+    });
+    
     await booking.save();
+    
+    // Notify tracking
+    notifyRideTrackingUpdated(booking);
+    
     return booking;
 };
 
@@ -225,10 +236,58 @@ if (
 
     // Instantly mark the ride as completed
     booking.bookingStatus = "completed";
+    
+    if (!booking.tracking) booking.tracking = {};
+    booking.tracking.currentStage = "completed";
+    booking.tracking.stages.push({
+        stage: "completed",
+        timestamp: new Date()
+    });
 
     await booking.save();
+    
+    // Notify tracking
+    notifyRideTrackingUpdated(booking);
 
     return { booking, paymentLink, paymentLinkId, remainingAmount: remaining };
+};
+
+export const updateTrackingService = async (riderId, bookingId, { stage, lat, lng, stopId }) => {
+    const booking = await Booking.findOne({ _id: bookingId, riderId });
+    if (!booking) throw new Error("Booking not found or not assigned to you.");
+
+    if (!booking.tracking) booking.tracking = {};
+    if (!booking.tracking.stages) booking.tracking.stages = [];
+    if (!booking.tracking.completedStops) booking.tracking.completedStops = [];
+    
+    // Prevent pushing duplicate stages (unless it's a different stop)
+    const isDuplicate = booking.tracking.currentStage === stage && 
+                        (booking.tracking.stages.length > 0 && 
+                         booking.tracking.stages[booking.tracking.stages.length - 1].stopId?.toString() === stopId?.toString());
+
+    if (!isDuplicate) {
+        booking.tracking.currentStage = stage;
+        booking.tracking.stages.push({
+            stage,
+            lat,
+            lng,
+            stopId,
+            timestamp: new Date()
+        });
+
+        if (stage === "completed_stop") {
+            if (stopId && !booking.tracking.completedStops.includes(stopId)) {
+                booking.tracking.completedStops.push(stopId);
+            }
+        }
+
+        await booking.save();
+        
+        // Emit socket event for tracking
+        notifyRideTrackingUpdated(booking);
+    }
+    
+    return booking;
 };
 
 export const verifyAndCompleteRideService = async (riderId, bookingId) => {
