@@ -6,7 +6,8 @@ import {
     startRideService,
     completeRideService,
     verifyAndCompleteRideService,
-    getBookingByIdService
+    getBookingByIdService,
+    updateTrackingService
 } from "./bookings.service.js";
 import { notifyTouristRideCompleted } from "../../../core/socket.events.js";
 
@@ -107,6 +108,20 @@ export const verifyPaymentAndComplete = async (req, res) => {
 
         // Notify tourist via socket
         notifyTouristRideCompleted(booking);
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const updateTracking = async (req, res) => {
+    try {
+        const { stage, lat, lng, stopId } = req.body;
+        const booking = await updateTrackingService(req.user._id, req.params.id, { stage, lat, lng, stopId });
+        res.status(200).json({
+            success: true,
+            message: "Tracking updated successfully.",
+            data: booking
+        });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }

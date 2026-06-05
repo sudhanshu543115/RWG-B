@@ -65,7 +65,9 @@ export const initSocket = (server) => {
     // 2. Handle location updates from the Rider
     socket.on("update-ride-location", async (data) => {
       const { bookingId, lat, lng } = data;
-      if (!bookingId || !lat || !lng) return;
+      if (!bookingId || !lat || !lng) {
+            console.log("❌ Invalid tracking payload:", data);
+        return;}
       // A. Broadcast to the Tourist (and Admin) in that room instantly
       // We use .to() to send to everyone in the room except the sender
       socket.to(`ride:${bookingId}`).emit("ride-location-updated", { lat, lng });

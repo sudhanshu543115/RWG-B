@@ -155,7 +155,32 @@ const bookingSchema = new mongoose.Schema({
     updatedAt: Date
   },
 
-
+  // 🛤️ DETAILED RIDE TRACKING
+  tracking: {
+    currentStage: {
+      type: String,
+      enum: [
+        "assigned",
+        "heading_to_pickup",
+        "arrived_at_pickup",
+        "trip_started",
+        "heading_to_stop",
+        "arrived_at_stop",
+        "completed_stop",
+        "heading_to_drop",
+        "completed"
+      ],
+      default: "assigned"
+    },
+    stages: [{
+      stage: String,
+      timestamp: { type: Date, default: Date.now },
+      lat: Number,
+      lng: Number,
+      stopId: mongoose.Schema.Types.ObjectId
+    }],
+    completedStops: [{ type: mongoose.Schema.Types.ObjectId }]
+  },
 
   interestedRiders: [{
     riderId: { type: mongoose.Schema.Types.ObjectId, ref: "Rider" },

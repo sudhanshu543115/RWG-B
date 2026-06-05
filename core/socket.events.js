@@ -316,6 +316,31 @@ function notifyRiderPayoutRejected(riderId, amount) {
   }
 }
 
+function notifyRideTrackingUpdated(booking) {
+  try {
+    const payload = {
+      bookingId: booking._id,
+      tracking: booking.tracking
+    };
+
+    // Emit to admin
+    emitToRoom("admin", "ride-tracking-updated", payload);
+
+    // Emit to tourist
+    let touristId;
+    if (booking.touristId && typeof booking.touristId === 'object') {
+      touristId = booking.touristId._id?.toString();
+    } else {
+      touristId = booking.touristId?.toString();
+    }
+    if (touristId) {
+      emitToRoom(`tourist:${touristId}`, "ride-tracking-updated", payload);
+    }
+  } catch (error) {
+    console.error("❌ Tracking update notify error:", error.message);
+  }
+}
+
 
 
 
@@ -331,5 +356,6 @@ export {
   notifyRiderPaymentCompleted,
   notifyTouristRideCompleted,
   notifyRiderPayoutProcessed,
-  notifyRiderPayoutRejected
+  notifyRiderPayoutRejected,
+  notifyRideTrackingUpdated
 };
