@@ -78,7 +78,14 @@ export const deleteCity = async (req, res) => {
 export const addStopToCity = async (req, res) => {
   try {
     const { cityId } = req.params;
-    const { name, duration, category } = req.body;
+    const { name, duration, category, lat, lng } = req.body;
+
+    if (!name || !duration || !category) {
+      return res.status(400).json({
+        success: false,
+        message: "name, duration, and category are required"
+      });
+    }
 
     const config = await PlatformConfig.findOne().sort({ createdAt: -1 });
 
@@ -96,22 +103,29 @@ export const addStopToCity = async (req, res) => {
       });
     }
 
-    // Get coordinates automatically
-    const coordinates = await geocodeLocation(name, city.name);
+    // Use coordinates from request body (map picker) if provided,
+    // otherwise fall back to geocoding
+    let finalLat = lat;
+    let finalLng = lng;
 
-    if (!coordinates) {
-      return res.status(400).json({
-        success: false,
-        message: "Unable to fetch coordinates"
-      });
+    if (!finalLat || !finalLng) {
+      const coordinates = await geocodeLocation(name, city.name);
+      if (!coordinates) {
+        return res.status(400).json({
+          success: false,
+          message: "Unable to fetch coordinates. Please select a location on the map."
+        });
+      }
+      finalLat = coordinates.lat;
+      finalLng = coordinates.lng;
     }
 
     const newStop = {
       name,
       duration,
       category,
-      lat: coordinates.lat,
-      lng: coordinates.lng
+      lat: finalLat,
+      lng: finalLng
     };
 
     let stops = config.CITY_STOPS.get(cityId) || [];
@@ -119,6 +133,7 @@ export const addStopToCity = async (req, res) => {
     stops.push(newStop);
 
     config.CITY_STOPS.set(cityId, stops);
+    config.markModified('CITY_STOPS');
 
     await config.save();
 
@@ -138,19 +153,33 @@ export const addStopToCity = async (req, res) => {
 
 export const deleteStopFromCity = async (req, res) => {
   try {
-    const { cityId, stopName } = req.params;
-    
+    const { cityId } = req.params;
+    const stopName = decodeURIComponent(req.params.stopName);
+
+    if (!stopName || !cityId) {
+      return res.status(400).json({ success: false, message: "cityId and stopName are required" });
+    }
+
+    console.log(`[DELETE STOP] cityId="${cityId}", stopName="${stopName}"`);
+
     const config = await PlatformConfig.findOne().sort({ createdAt: -1 });
     if (!config) throw new Error("Config not found");
 
     let stops = config.CITY_STOPS.get(cityId) || [];
+    const originalLength = stops.length;
     stops = stops.filter(s => s.name !== stopName);
-    
+
+    if (stops.length === originalLength) {
+      return res.status(404).json({ success: false, message: `Stop "${stopName}" not found in ${cityId}` });
+    }
+
     config.CITY_STOPS.set(cityId, stops);
+    config.markModified('CITY_STOPS');
 
     await config.save();
     res.status(200).json({ success: true, message: "Stop removed", data: stops });
   } catch (error) {
+    console.error("[DELETE STOP ERROR]", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
