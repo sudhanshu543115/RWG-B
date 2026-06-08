@@ -54,6 +54,36 @@ export const addCity = async (req, res) => {
   }
 };
 
+export const updateCity = async (req, res) => {
+  try {
+    const { cityId } = req.params;
+    const config = await PlatformConfig.findOne().sort({ createdAt: -1 });
+    if (!config) throw new Error("Config not found");
+
+    const cityIndex = config.CITIES.findIndex(c => c.id === cityId);
+    if (cityIndex === -1) {
+      return res.status(404).json({ success: false, message: "City not found" });
+    }
+
+    const updatedCity = { ...config.CITIES[cityIndex], ...req.body };
+    
+    if (req.body.id && req.body.id !== cityId) {
+      const stops = config.CITY_STOPS.get(cityId) || [];
+      config.CITY_STOPS.set(req.body.id, stops);
+      config.CITY_STOPS.delete(cityId);
+      config.markModified('CITY_STOPS');
+    }
+
+    config.CITIES[cityIndex] = updatedCity;
+    config.markModified('CITIES');
+
+    await config.save();
+    res.status(200).json({ success: true, data: config.CITIES });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const deleteCity = async (req, res) => {
   try {
     const { cityId } = req.params;
