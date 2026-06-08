@@ -29,7 +29,7 @@ export const getOverviewStatsService = async () => {
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
     const stats = allBookings.reduce((acc, booking) => {
-        const total = booking.pricing?.totalAmount || 0;
+        const total = booking.payment?.amountPaid || 0;
         const platformCut = booking.pricing?.serviceFee || 0;
         const status = booking.bookingStatus;
         const bookingDate = new Date(booking.createdAt);
