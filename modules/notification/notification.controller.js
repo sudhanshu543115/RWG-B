@@ -4,13 +4,20 @@ import {
   markAllAsRead,
 } from "./notification.service.js";
 
+const getQueryForUser = (user) => {
+  if (user.role === "admin") {
+    return { recipientRole: "admin" };
+  }
+  return { recipientId: user._id };
+};
+
 export const getMyNotifications = async (req, res) => {
   try {
-    const recipientId = req.user._id;
+    const query = getQueryForUser(req.user);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
 
-    const data = await getNotifications(recipientId, page, limit);
+    const data = await getNotifications(query, page, limit);
 
     return res.status(200).json({ success: true, data });
   } catch (error) {
@@ -24,7 +31,8 @@ export const getMyNotifications = async (req, res) => {
 
 export const markNotificationRead = async (req, res) => {
   try {
-    const notification = await markAsRead(req.params.id, req.user._id);
+    const query = getQueryForUser(req.user);
+    const notification = await markAsRead(req.params.id, query);
 
     if (!notification) {
       return res
@@ -43,7 +51,8 @@ export const markNotificationRead = async (req, res) => {
 
 export const markAllNotificationsRead = async (req, res) => {
   try {
-    await markAllAsRead(req.user._id);
+    const query = getQueryForUser(req.user);
+    await markAllAsRead(query);
     return res
       .status(200)
       .json({ success: true, message: "All notifications marked as read." });

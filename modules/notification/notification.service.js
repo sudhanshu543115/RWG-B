@@ -40,19 +40,19 @@ export const createNotification = async ({
 };
 
 /**
- * Get all notifications for a user (paginated)
+ * Get all notifications based on query (paginated)
  */
-export const getNotifications = async (recipientId, page = 1, limit = 20) => {
+export const getNotifications = async (query, page = 1, limit = 20) => {
   const skip = (page - 1) * limit;
 
   const [notifications, total, unreadCount] = await Promise.all([
-    Notification.find({ recipientId })
+    Notification.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    Notification.countDocuments({ recipientId }),
-    Notification.countDocuments({ recipientId, isRead: false }),
+    Notification.countDocuments(query),
+    Notification.countDocuments({ ...query, isRead: false }),
   ]);
 
   return { notifications, total, unreadCount, page, limit };
@@ -61,20 +61,20 @@ export const getNotifications = async (recipientId, page = 1, limit = 20) => {
 /**
  * Mark a single notification as read
  */
-export const markAsRead = async (notificationId, recipientId) => {
+export const markAsRead = async (notificationId, query) => {
   return Notification.findOneAndUpdate(
-    { _id: notificationId, recipientId },
+    { _id: notificationId, ...query },
     { isRead: true },
     { new: true }
   );
 };
 
 /**
- * Mark ALL notifications as read for a user
+ * Mark ALL notifications as read
  */
-export const markAllAsRead = async (recipientId) => {
+export const markAllAsRead = async (query) => {
   return Notification.updateMany(
-    { recipientId, isRead: false },
+    { ...query, isRead: false },
     { isRead: true }
   );
 };

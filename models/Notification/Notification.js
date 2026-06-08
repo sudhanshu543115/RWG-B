@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema(
   {
     recipientId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: function() { return this.recipientRole !== 'admin'; },
       index: true,
     },
     recipientRole: {
