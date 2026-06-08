@@ -127,10 +127,17 @@ export const getBookingEstimateService = async (bookingData) => {
     const rates = config.GLOBAL_RATES;
     const pConfig = config.PRICING_CONFIG;
 
-    const base = rates.base;
-    const dist = Math.round(km * rates.perKm);
-    const time = Math.round(hoursBooked * rates.perHour);
-    const guide = rates.guideFee;
+    // Determine Vehicle Multiplier
+    const vehicleTypeStr = bookingData.vehicleType || 'bike';
+    let vMult = 1.0;
+    if (vehicleTypeStr === 'cab') vMult = 2.5;
+    else if (vehicleTypeStr === 'auto') vMult = 1.5;
+    else if (vehicleTypeStr === 'bike-light') vMult = 0.8;
+
+    const base = Math.round(rates.base * vMult);
+    const dist = Math.round(km * rates.perKm * vMult);
+    const time = Math.round(hoursBooked * rates.perHour * vMult);
+    const guide = Math.round(rates.guideFee * vMult);
 
     const rawTotal = Math.round((dist + time + base + guide) * d);
     const adminPercent = pConfig.ADMIN_COMMISSION_PERCENT !== undefined ? pConfig.ADMIN_COMMISSION_PERCENT : 0.3;

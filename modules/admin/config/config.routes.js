@@ -2,6 +2,7 @@ import {
   getPlatformConfig, 
   updatePlatformConfig, 
   addCity, 
+  updateCity,
   deleteCity, 
   addStopToCity, 
   deleteStopFromCity 
@@ -20,6 +21,7 @@ router.put("/", protectAdmin, updatePlatformConfig);
 
 // --- Specific City Management ---
 router.post("/cities", protectAdmin, addCity);
+router.put("/cities/:cityId", protectAdmin, updateCity);
 router.delete("/cities/:cityId", protectAdmin, deleteCity);
 
 // --- Specific Stop Management ---
