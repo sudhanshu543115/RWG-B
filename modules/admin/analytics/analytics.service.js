@@ -68,8 +68,11 @@ export const getOverviewStatsService = async () => {
 
         // City Performance
         const city = booking.city || "Unknown";
-        if (!acc.cityStats[city]) acc.cityStats[city] = { city, bookings: 0, riders: new Set() };
+        if (!acc.cityStats[city]) acc.cityStats[city] = { city, bookings: 0, riders: new Set(), revenue: 0 };
         acc.cityStats[city].bookings += 1;
+        if (status === "completed") {
+            acc.cityStats[city].revenue += total;
+        }
         if (booking.riderId) acc.cityStats[city].riders.add(booking.riderId._id.toString());
 
         return acc;
