@@ -50,7 +50,7 @@ app.get("/api/health", (req, res) => {
 
 app.use(routes);
  
-// Global Error Handler
+// Global Error Handler ddj
 app.use((err, req, res, next) => {
   console.error("❌ GLOBAL ERROR:", err);
   const status = err.status || err.statusCode || 500;
