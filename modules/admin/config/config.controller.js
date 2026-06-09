@@ -36,6 +36,17 @@ export const addCity = async (req, res) => {
 
     const newCity = req.body; // { id, name, demand, tagline, lat, lng }
     
+    // Validate request body
+    if (!newCity.id || typeof newCity.id !== 'string' || !newCity.id.trim()) {
+      return res.status(400).json({ success: false, message: "City ID (slug) is required and cannot be empty." });
+    }
+    if (!newCity.name || typeof newCity.name !== 'string' || !newCity.name.trim()) {
+      return res.status(400).json({ success: false, message: "City name is required and cannot be empty." });
+    }
+
+    // Clean the ID (lowercase and replace spaces with hyphens)
+    newCity.id = newCity.id.trim().toLowerCase().replace(/\s+/g, '-');
+
     // Check if city ID already exists
     if (config.CITIES.some(c => c.id === newCity.id)) {
       return res.status(400).json({ success: false, message: "City ID already exists" });
@@ -65,11 +76,17 @@ export const updateCity = async (req, res) => {
       return res.status(404).json({ success: false, message: "City not found" });
     }
 
+    if (req.body.id !== undefined && (!req.body.id || typeof req.body.id !== 'string' || !req.body.id.trim())) {
+      return res.status(400).json({ success: false, message: "City ID (slug) cannot be empty." });
+    }
+
     const updatedCity = { ...config.CITIES[cityIndex], ...req.body };
     
     if (req.body.id && req.body.id !== cityId) {
+      const cleanNewId = req.body.id.trim().toLowerCase().replace(/\s+/g, '-');
+      updatedCity.id = cleanNewId;
       const stops = config.CITY_STOPS.get(cityId) || [];
-      config.CITY_STOPS.set(req.body.id, stops);
+      config.CITY_STOPS.set(cleanNewId, stops);
       config.CITY_STOPS.delete(cityId);
       config.markModified('CITY_STOPS');
     }
