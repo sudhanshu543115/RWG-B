@@ -7,7 +7,8 @@ import {
     completeRideService,
     verifyAndCompleteRideService,
     getBookingByIdService,
-    updateTrackingService
+    updateTrackingService,
+    cancelBookingService
 } from "./bookings.service.js";
 import { notifyTouristRideCompleted } from "../../../core/socket.events.js";
 
@@ -124,5 +125,31 @@ export const updateTracking = async (req, res) => {
         });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const cancelBooking = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+        const updatedBooking = await cancelBookingService(req.user._id, id, reason);
+
+        // Notify tourist and admin about the cancellation via socket
+        import('../../../core/socket.events.js').then(({ notifyTouristBookingCancelled, notifyAdminBookingCancelled }) => {
+            notifyTouristBookingCancelled(updatedBooking);
+            notifyAdminBookingCancelled(updatedBooking);
+        });
+        
+        return res.status(200).json({
+            success: true,
+            message: "Booking cancelled successfully.",
+            data: updatedBooking
+        });
+    } catch (error) {
+        console.error("Error in cancelBooking (rider):", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to cancel booking."
+        });
     }
 };
