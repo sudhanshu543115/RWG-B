@@ -295,7 +295,7 @@ export const getBookingByIdService = async (userId, bookingId) => {
     return booking;
 };
 
-export const cancelBookingService = async (userId, bookingId) => {
+export const cancelBookingService = async (userId, bookingId, reason) => {
     const booking = await Booking.findOne({ touristId: userId, _id: bookingId });
 
     if (!booking) {
@@ -312,6 +312,8 @@ export const cancelBookingService = async (userId, bookingId) => {
     }
 
     booking.bookingStatus = "cancelled";
+    booking.cancellationReason = reason || "Not specified";
+    booking.cancelledBy = "tourist";
     await booking.save();
     return booking;
 };

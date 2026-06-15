@@ -389,6 +389,35 @@ function notifyAdminEmergencySOS(booking) {
 
 
 
+function notifyTouristBookingCancelled(booking) {
+  try {
+    let touristId;
+    if (booking.touristId && typeof booking.touristId === 'object') {
+      touristId = booking.touristId._id?.toString();
+    } else {
+      touristId = booking.touristId?.toString();
+    }
+    if (!touristId) return;
+
+    emitToRoom(`tourist:${touristId}`, "booking-cancelled", {
+      bookingId: booking._id,
+      message: "The assigned rider has cancelled the booking."
+    });
+
+    createNotification({
+      recipientId: touristId,
+      recipientRole: "tourist",
+      type: "booking_cancelled",
+      title: "Booking Cancelled",
+      message: "The assigned rider has cancelled the booking.",
+      bookingId: booking._id,
+    });
+
+  } catch (error) {
+    console.error("❌ Tourist cancellation notify error:", error.message);
+  }
+}
+
 export {
   initSocketEvents,
   getIO,
@@ -398,6 +427,7 @@ export {
   notifyRiderAssigned,
   notifyRidersBookingCancelled,
   notifyAdminBookingCancelled,
+  notifyTouristBookingCancelled,
   notifyRiderPaymentCompleted,
   notifyTouristRideCompleted,
   notifyRiderPayoutProcessed,

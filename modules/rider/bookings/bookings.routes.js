@@ -9,7 +9,8 @@ import {
     completeRide,
     getBookingById,
     verifyPaymentAndComplete,
-    updateTracking
+    updateTracking,
+    cancelBooking
 } from "./bookings.controller.js";
 import razorpay from "../../../config/razorpay.js";
 const router = express.Router();
@@ -59,6 +60,7 @@ router.patch("/:id/complete", completeRide);
 
 router.patch("/:id/verify-payment", verifyPaymentAndComplete);
 router.patch("/:id/tracking", updateTracking);
+router.patch("/:id/cancel", cancelBooking);
 
 
 

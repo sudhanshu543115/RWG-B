@@ -398,6 +398,27 @@ export const getBookingByIdService = async (bookingId, riderId) => {
         throw new Error("Booking not found or you are not authorized to view it.");
     }
     return booking;
+};
 
+export const cancelBookingService = async (riderId, bookingId, reason) => {
+    const booking = await Booking.findOne({ riderId: riderId, _id: bookingId });
 
+    if (!booking) {
+        throw new Error("Booking not found.");
+    }
+
+    // Prevents proceeding if ride has already started or finished
+    if (["ongoing", "completed"].includes(booking.bookingStatus)) {
+        throw new Error(`Cannot cancel an ${booking.bookingStatus} ride.`);
+    }
+
+    if (booking.bookingStatus === "cancelled") {
+        throw new Error("Booking is already cancelled.");
+    }
+
+    booking.bookingStatus = "cancelled";
+    booking.cancellationReason = reason || "Not specified";
+    booking.cancelledBy = "rider";
+    await booking.save();
+    return booking;
 };

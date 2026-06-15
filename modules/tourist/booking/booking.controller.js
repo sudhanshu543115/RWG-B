@@ -86,7 +86,8 @@ export const getBookingById = async (req, res) => {
 export const cancelBooking = async (req, res) => {
     try {
         const { id } = req.params;
-        const updatedBooking = await cancelBookingService(req.user._id, id);
+        const { reason } = req.body;
+        const updatedBooking = await cancelBookingService(req.user._id, id, reason);
 
         // Notify riders and admin about the cancellation via socket
         notifyRidersBookingCancelled(updatedBooking);
