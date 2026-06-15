@@ -26,6 +26,7 @@ const notificationSchema = new mongoose.Schema(
         "payout_rejected",
         "rider_interested",
         "general",
+        "emergency_sos"
       ],
       default: "general",
     },

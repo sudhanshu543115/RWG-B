@@ -6,7 +6,13 @@ import {
     rateRiderService,
     getBookingEstimateService
 } from "./booking.service.js";
-import { notifyMatchedRidersNewBooking, notifyRidersBookingCancelled, notifyAdminBookingCancelled } from "../../../core/socket.events.js";
+import { 
+    notifyMatchedRidersNewBooking, 
+    notifyRidersBookingCancelled, 
+    notifyAdminBookingCancelled,
+    notifyAdminEmergencySOS
+} from "../../../core/socket.events.js";
+import Booking from "../../../models/tourist/Booking.js";
 
 export const getBookingEstimate = async (req, res) => {
     try {
@@ -116,3 +122,39 @@ export const rateRider = async (req, res) => {
     }
 };
 
+    export const triggerSOS = async (req, res) => {
+    try {
+        const { bookingId, location } = req.body;
+        if (!bookingId) {
+            return res.status(400).json({ success: false, message: "Booking ID is required" });
+        }
+        
+        // Find booking and populate rider and tourist to get their details for the alert
+        const booking = await Booking.findOne({ _id: bookingId, touristId: req.user._id })
+            .populate("touristId", "name phone")
+            .populate("riderId", "name phone");
+            
+        if (!booking) {
+            return res.status(404).json({ success: false, message: "Booking not found" });
+        }
+        
+        // Temporarily attach the tourist's exact location from their device
+        if (location && location.lat && location.lng) {
+            booking.liveLocation = location;
+        }
+
+        // Emit the SOS socket event to the admin
+        notifyAdminEmergencySOS(booking);
+        
+        return res.status(200).json({
+            success: true,
+            message: "SOS Alert sent to admin successfully"
+        });
+    } catch (error) {
+        console.error("Error in triggerSOS:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to trigger SOS alert"
+        });
+    }
+};
