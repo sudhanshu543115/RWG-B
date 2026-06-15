@@ -5,7 +5,8 @@ import {
     getBookingById, 
     cancelBooking,
     rateRider,
-    getBookingEstimate
+    getBookingEstimate,
+    triggerSOS
 } from "./booking.controller.js";
 import { protectTourist } from "../../../middleware/auth.middleware.js";
 
@@ -25,5 +26,6 @@ router.route("/:id")
 
 
 router.patch("/:id/rate", rateRider);
+router.post("/sos", triggerSOS);
 
 export default router;

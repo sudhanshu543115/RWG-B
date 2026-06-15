@@ -341,6 +341,51 @@ function notifyRideTrackingUpdated(booking) {
   }
 }
 
+function notifyAdminEmergencySOS(booking) {
+  try {
+    let finalLat = booking.liveLocation?.lat;
+    let finalLng = booking.liveLocation?.lng;
+
+    // Fallback 1: Last known tracking stage (Rider's location)
+    if (!finalLat && booking.tracking && booking.tracking.stages && booking.tracking.stages.length > 0) {
+      const lastStage = booking.tracking.stages[booking.tracking.stages.length - 1];
+      if (lastStage.lat) {
+        finalLat = lastStage.lat;
+        finalLng = lastStage.lng;
+      }
+    }
+
+    // Fallback 2: Pickup location
+    if (!finalLat && booking.pickupLocation && booking.pickupLocation.lat) {
+      finalLat = booking.pickupLocation.lat;
+      finalLng = booking.pickupLocation.lng;
+    }
+
+    const payload = {
+      bookingId: booking._id,
+      touristName: booking.touristId?.name || "Unknown",
+      touristPhone: booking.touristId?.phone || "Unknown",
+      riderName: booking.riderId?.name || "Unknown",
+      riderPhone: booking.riderId?.phone || "Unknown",
+      liveLocation: finalLat ? { lat: finalLat, lng: finalLng } : null,
+      message: `🚨 EMERGENCY SOS triggered by Tourist: ${booking.touristId?.name || "Unknown"}`
+    };
+    
+    emitToRoom("admin", "sos-alert", payload);
+    
+    // Also save a notification for admin
+    createNotification({
+      recipientRole: "admin",
+      type: "emergency_sos",
+      title: "🚨 EMERGENCY SOS",
+      message: payload.message,
+      bookingId: booking._id,
+    });
+  } catch (error) {
+    console.error("❌ Admin SOS notify error:", error.message);
+  }
+}
+
 
 
 
@@ -357,5 +402,6 @@ export {
   notifyTouristRideCompleted,
   notifyRiderPayoutProcessed,
   notifyRiderPayoutRejected,
-  notifyRideTrackingUpdated
+  notifyRideTrackingUpdated,
+  notifyAdminEmergencySOS
 };
