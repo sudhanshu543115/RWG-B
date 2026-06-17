@@ -29,10 +29,13 @@ export const updateRiderProfileService = async (userId, profileData) => {
     const rider = await Rider.findById(userId);
     if (!rider) throw new Error("Rider not found.");
 
+    const wasProfileCompleted = !!rider.profileCompleted;
+
     Object.assign(rider, profileData);
     rider.profileCompleted = checkProfileCompletion(rider);
 
     await rider.save();
+    rider.$locals.profileJustCompleted = !wasProfileCompleted && !!rider.profileCompleted;
     return rider;
 };
 
