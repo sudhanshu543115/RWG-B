@@ -8,11 +8,25 @@ export const getAllRidersService = async (status) => {
 };
 
 export const updateRiderStatusService = async (id, status) => {
-    return await Rider.findByIdAndUpdate(
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error("Invalid rider id");
+    }
+
+    if (!["approved", "rejected", "pending"].includes(status)) {
+        throw new Error("Valid rider verification status is required");
+    }
+
+    const rider = await Rider.findByIdAndUpdate(
         id, 
         { verificationStatus: status, isVerified: status === "approved" }, 
         { new: true }
     );
+
+    if (!rider) {
+        throw new Error("Rider not found");
+    }
+
+    return rider;
 };
 
 export const getPendingRidersService = async () => {
