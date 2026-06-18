@@ -53,6 +53,7 @@ export const assignRiderToBooking = async (id, riderId) => {
     console.log("📥 assignRiderToBooking service called with:", { bookingId: id, riderId });
     
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const endOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
     const booking = await Booking.findByIdAndUpdate(
         id, 
@@ -60,7 +61,10 @@ export const assignRiderToBooking = async (id, riderId) => {
             riderId: riderId, 
             bookingStatus: "assigned",
             assignmentStatus: "admin_assigned",
-            rideOTP: otp
+            rideOTP: otp,
+            endRideOTP: endOtp,
+            "tracking.endOtpVerified": false,
+            "tracking.endOtpVerifiedAt": null
         }, 
         { new: true }
     ).populate("touristId").populate("riderId"); // 🔥 IMPORTANT
@@ -131,11 +135,16 @@ export const autoAssignRiderService = async (bookingId) => {
 
     // 5. Generate OTP and Assign
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const endOtp = Math.floor(1000 + Math.random() * 9000).toString();
     
     booking.riderId = bestRider._id;
     booking.bookingStatus = "assigned";
     booking.assignmentStatus = "rider_selected";
     booking.rideOTP = otp;
+    booking.endRideOTP = endOtp;
+    if (!booking.tracking) booking.tracking = {};
+    booking.tracking.endOtpVerified = false;
+    booking.tracking.endOtpVerifiedAt = null;
     
     await booking.save();
 

@@ -282,6 +282,14 @@ export const getBookingsService = async (userId) => {
         .populate("riderId", "name phone profileImage vehicleModel vehicleNumber vehicleType rating")
         .select("-interestedRiders -rejectedRiders")
         .sort({ createdAt: -1 });
+
+    await Promise.all(bookings.map(async (booking) => {
+        if (booking.bookingStatus === "ongoing" && !booking.endRideOTP) {
+            booking.endRideOTP = Math.floor(1000 + Math.random() * 9000).toString();
+            await booking.save();
+        }
+    }));
+
     return bookings;
 };
 
@@ -291,6 +299,10 @@ export const getBookingByIdService = async (userId, bookingId) => {
         .select("-interestedRiders -rejectedRiders");
     if (!booking) {
         throw new Error("Booking not found.");
+    }
+    if (booking.bookingStatus === "ongoing" && !booking.endRideOTP) {
+        booking.endRideOTP = Math.floor(1000 + Math.random() * 9000).toString();
+        await booking.save();
     }
     return booking;
 };

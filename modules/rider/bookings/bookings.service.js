@@ -20,9 +20,11 @@ export const getPendingBookingsForRider = async (riderId) => {
         return [];
     }
 
+    const bookingExpiryCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000);
     const query = {
         bookingStatus: "searching",
         vehicleType: rider.vehicleType,
+        createdAt: { $gte: bookingExpiryCutoff },
 
         // city match (case insensitive)
         city: {
@@ -144,6 +146,11 @@ export const startRideService = async (riderId, bookingId, enteredOtp) => {
 
     booking.bookingStatus = "ongoing";
     if (!booking.tracking) booking.tracking = {};
+    if (!booking.endRideOTP) {
+        booking.endRideOTP = Math.floor(1000 + Math.random() * 9000).toString();
+    }
+    booking.tracking.endOtpVerified = false;
+    booking.tracking.endOtpVerifiedAt = null;
     booking.tracking.currentStage = "trip_started";
     booking.tracking.stages.push({
         stage: "trip_started",
@@ -158,6 +165,32 @@ export const startRideService = async (riderId, bookingId, enteredOtp) => {
     return booking;
 };
 
+export const verifyEndRideOtpService = async (riderId, bookingId, enteredOtp) => {
+    const booking = await Booking.findOne({ _id: bookingId, riderId });
+    if (!booking) throw new Error("Booking not found or not assigned to you.");
+    if (booking.bookingStatus !== "ongoing") throw new Error("Ride must be ongoing before end OTP verification.");
+
+    const completedStops = booking.tracking?.completedStops || [];
+    const totalStops = booking.stops?.length || 0;
+    if (totalStops > 0 && completedStops.length < totalStops) {
+        throw new Error("Complete all stops before verifying the end OTP.");
+    }
+
+    if (!enteredOtp) throw new Error("End OTP is required to complete the ride.");
+    if (booking.endRideOTP !== enteredOtp) {
+        throw new Error("Invalid end OTP. Please ask tourist to recheck.");
+    }
+
+    if (!booking.tracking) booking.tracking = {};
+    booking.tracking.endOtpVerified = true;
+    booking.tracking.endOtpVerifiedAt = new Date();
+    await booking.save();
+
+    notifyRideTrackingUpdated(booking);
+
+    return booking;
+};
+
 // Complete the ride
 
 
@@ -168,6 +201,17 @@ export const completeRideService = async (riderId, bookingId) => {
         .populate("touristId", "name phone");
 
     if (!booking) throw new Error("Booking not found or not assigned to you.");
+
+    const completedStops = booking.tracking?.completedStops || [];
+    const totalStops = booking.stops?.length || 0;
+    if (totalStops > 0 && completedStops.length < totalStops) {
+        throw new Error("Complete all stops before completing the ride.");
+    }
+
+    if (!booking.tracking?.endOtpVerified) {
+        throw new Error("Please verify the end OTP from tourist before completing the ride.");
+    }
+
    if (
     booking.bookingStatus !== "ongoing" &&
     booking.bookingStatus !== "completed"
@@ -384,7 +428,7 @@ const creditRiderWallet = async (riderId, booking) => {
 export const getMyBookingsService = async (riderId) => {
     const bookings = await Booking.find({ riderId })
         .populate("touristId", "name phone profileImage")
-        .select("city date startTime durationType pickupLocation stops language genderPreference touristId pricing.totalAmount pricing.serviceFee pricing.guideServiceFee bookingStatus rideOTP payment.status payment.remainingAmount createdAt interestedRiders rejectedRiders expiresAt")
+        .select("city date startTime durationType pickupLocation stops language genderPreference touristId pricing.totalAmount pricing.serviceFee pricing.guideServiceFee bookingStatus rideOTP endRideOTP payment.status payment.remainingAmount createdAt interestedRiders rejectedRiders expiresAt tracking")
         .sort({ createdAt: -1 });
     return bookings;
 };
@@ -397,6 +441,12 @@ export const getBookingByIdService = async (bookingId, riderId) => {
     if (!booking) {
         throw new Error("Booking not found or you are not authorized to view it.");
     }
+
+    if (booking.bookingStatus === "ongoing" && !booking.endRideOTP) {
+        booking.endRideOTP = Math.floor(1000 + Math.random() * 9000).toString();
+        await booking.save();
+    }
+
     return booking;
 };
 
