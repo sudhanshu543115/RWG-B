@@ -8,6 +8,7 @@ export const getRiderStatsService = async (riderId) => {
     const now = new Date();
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
+    const bookingExpiryCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
     // Prepare queries
     const todayCompletedQuery = {
@@ -20,6 +21,7 @@ export const getRiderStatsService = async (riderId) => {
         bookingStatus: "searching",
         vehicleType: rider.vehicleType,
         city: { $regex: rider.city.trim(), $options: "i" },
+        createdAt: { $gte: bookingExpiryCutoff },
         $or: [{ riderId: null }, { riderId: { $exists: false } }],
         rejectedRiders: { $nin: [rider._id] },
         "interestedRiders.riderId": { $nin: [rider._id] }

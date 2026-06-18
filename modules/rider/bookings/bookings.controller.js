@@ -4,6 +4,7 @@ import {
     rejectBookingService,
     getMyBookingsService,
     startRideService,
+    verifyEndRideOtpService,
     completeRideService,
     verifyAndCompleteRideService,
     getBookingByIdService,
@@ -69,6 +70,19 @@ export const startRide = async (req, res) => {
         }
         const booking = await startRideService(req.user._id, req.params.id, otp);
         res.status(200).json({ success: true, message: "Ride started!", data: booking });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const verifyEndRideOtp = async (req, res) => {
+    try {
+        const { otp } = req.body;
+        if (!otp) {
+            return res.status(400).json({ success: false, message: "End OTP is required to complete the ride." });
+        }
+        const booking = await verifyEndRideOtpService(req.user._id, req.params.id, otp);
+        res.status(200).json({ success: true, message: "End OTP verified!", data: booking });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }

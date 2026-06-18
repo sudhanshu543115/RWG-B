@@ -156,6 +156,9 @@ const bookingSchema = new mongoose.Schema({
   rideOTP: {
     type: String
   },
+  endRideOTP: {
+    type: String
+  },
 
   // 📡 LIVE TRACKING
   liveLocation: {
@@ -188,7 +191,9 @@ const bookingSchema = new mongoose.Schema({
       lng: Number,
       stopId: mongoose.Schema.Types.ObjectId
     }],
-    completedStops: [{ type: mongoose.Schema.Types.ObjectId }]
+    completedStops: [{ type: mongoose.Schema.Types.ObjectId }],
+    endOtpVerified: { type: Boolean, default: false },
+    endOtpVerifiedAt: Date
   },
 
   interestedRiders: [{

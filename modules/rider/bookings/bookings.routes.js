@@ -6,6 +6,7 @@ import {
     rejectBooking,
     getMyBookings,
     startRide,
+    verifyEndRideOtp,
     completeRide,
     getBookingById,
     verifyPaymentAndComplete,
@@ -56,6 +57,7 @@ router.get("/:id", getBookingById);
 router.post("/:id/interested", expressInterest);
 router.post("/:id/reject", rejectBooking);
 router.patch("/:id/start", startRide);
+router.patch("/:id/verify-end-otp", verifyEndRideOtp);
 router.patch("/:id/complete", completeRide);
 
 router.patch("/:id/verify-payment", verifyPaymentAndComplete);
