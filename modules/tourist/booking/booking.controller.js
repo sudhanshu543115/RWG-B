@@ -87,16 +87,17 @@ export const cancelBooking = async (req, res) => {
     try {
         const { id } = req.params;
         const { reason } = req.body;
-        const updatedBooking = await cancelBookingService(req.user._id, id, reason);
+        const result = await cancelBookingService(req.user._id, id, reason);
 
         // Notify riders and admin about the cancellation via socket
-        notifyRidersBookingCancelled(updatedBooking);
-        notifyAdminBookingCancelled(updatedBooking);
+        notifyRidersBookingCancelled(result.booking);
+        notifyAdminBookingCancelled(result.booking);
         
         return res.status(200).json({
             success: true,
-            message: "Booking cancelled successfully.",
-            data: updatedBooking
+            message: result.cancellation.note,
+            data: result.booking,
+            cancellation: result.cancellation
         });
     } catch (error) {
         console.error("Error in cancelBooking:", error);

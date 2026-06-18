@@ -23,6 +23,17 @@ const platformConfigSchema = new mongoose.Schema({
     DESCRIPTION: String,
     FORMULA: String
   },
+
+  // ── Cancellation Policy ───────────────────────────────
+  CANCELLATION_POLICY: {
+    // First X% of gap (booking created → ride start) = free cancel window for tourist
+    FREE_CANCEL_PERCENT: { type: Number, default: 0.30 },
+    // % of totalAmount deducted from tourist's advance if they cancel after free window
+    TOURIST_CANCEL_CHARGE_PERCENT: { type: Number, default: 0.03 },
+    // % of totalAmount deducted from rider's wallet if rider cancels after free window
+    // (gap = assignment time → ride start)
+    RIDER_CANCEL_CHARGE_PERCENT: { type: Number, default: 0.03 },
+  },
   RIDE_TYPES: [{
     id: String,
     label: String,

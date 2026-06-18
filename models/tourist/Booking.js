@@ -141,6 +141,20 @@ const bookingSchema = new mongoose.Schema({
     enum: ["tourist", "rider", "admin"]
   },
 
+  // 🕐 When rider was assigned (needed for 30% free cancel window calculation)
+  assignedAt: { type: Date },
+
+  // 💸 Cancellation charge details
+  cancellation: {
+    chargePercent:  { type: Number, default: 0 },      // snapshot of policy at cancel time
+    chargeAmount:   { type: Number, default: 0 },      // ₹ deducted (tourist) or penalty (rider)
+    refundAmount:   { type: Number, default: 0 },      // ₹ refunded to tourist
+    riderPenalty:   { type: Number, default: 0 },      // ₹ deducted from rider wallet
+    refundId:       { type: String },                  // Razorpay refund ID
+    refundStatus:   { type: String, enum: ['pending', 'processed', 'failed', 'not_applicable'] },
+    cancelledAt:    { type: Date }
+  },
+
   assignmentStatus: {
     type: String,
     enum: [

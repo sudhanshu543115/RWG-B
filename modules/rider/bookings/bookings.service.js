@@ -6,6 +6,7 @@ import Settings from "../../../models/admin/Setting.js";
 import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js";
 import razorpay from "../../../config/razorpay.js";
 import User from "../../../models/tourist/User.js";
+import PlatformConfig from "../../../models/admin/PlatformConfig.js";
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
@@ -466,9 +467,69 @@ export const cancelBookingService = async (riderId, bookingId, reason) => {
         throw new Error("Booking is already cancelled.");
     }
 
-    booking.bookingStatus = "cancelled";
+    // ── Cancellation charge calculation (Rider) ──────────────────────────
+    const config = await PlatformConfig.findOne();
+    const policy = config?.CANCELLATION_POLICY || {};
+    const freeCancelPercent = policy.FREE_CANCEL_PERCENT           ?? 0.30;
+    const chargePercent     = policy.RIDER_CANCEL_CHARGE_PERCENT   ?? 0.03;
+
+    // Build ride start datetime from booking.date + booking.startTime
+    let rideStart = null;
+    try {
+        const [h, m] = (booking.startTime || "00:00").split(":").map(Number);
+        rideStart = new Date(booking.date);
+        rideStart.setHours(h, m, 0, 0);
+    } catch (_) {}
+
+    // Gap is measured from assignedAt → ride start (falls back to createdAt if missing)
+    const assignedAt = booking.assignedAt || booking.createdAt;
+    const now = new Date();
+
+    let riderPenalty = 0;
+
+    if (rideStart && assignedAt && rideStart > assignedAt) {
+        const totalGapMs   = rideStart.getTime() - assignedAt.getTime();
+        const freeWindowMs = totalGapMs * freeCancelPercent;
+        const freeDeadline = new Date(assignedAt.getTime() + freeWindowMs);
+
+        if (now > freeDeadline) {
+            // After free window — apply 3% penalty on rider wallet
+            const totalAmount = booking.pricing?.totalAmount || 0;
+            riderPenalty = Math.round(totalAmount * chargePercent);
+
+            // Deduct from rider wallet — wallet CAN go negative, auto-recovers on next earning
+            await Rider.findByIdAndUpdate(riderId, {
+                $inc: { walletBalance: -riderPenalty }
+            });
+        }
+    }
+
+    // Tourist ALWAYS gets full advance refunded when rider cancels (rider's fault)
+    const refundAmount = booking.pricing?.advanceAmount || 0;
+
+    booking.bookingStatus      = "cancelled";
     booking.cancellationReason = reason || "Not specified";
-    booking.cancelledBy = "rider";
+    booking.cancelledBy        = "rider";
+    booking.cancellation = {
+        chargePercent,
+        chargeAmount:  0,          // tourist is not charged when rider cancels
+        refundAmount,              // tourist gets full advance back
+        riderPenalty,
+        refundStatus:  refundAmount > 0 ? "pending" : "not_applicable",
+        cancelledAt:   now
+    };
+
     await booking.save();
-    return booking;
+
+    return {
+        booking,
+        cancellation: {
+            isFree:       riderPenalty === 0,
+            riderPenalty,
+            refundAmount,
+            note: riderPenalty === 0
+                ? "Cancelled within free window — no penalty applied. Tourist will receive full refund."
+                : `₹${riderPenalty} penalty deducted from your wallet. Tourist will receive full ₹${refundAmount} refund.`
+        }
+    };
 };

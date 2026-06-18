@@ -323,11 +323,69 @@ export const cancelBookingService = async (userId, bookingId, reason) => {
         throw new Error("Booking is already cancelled.");
     }
 
-    booking.bookingStatus = "cancelled";
+    // ── Cancellation charge calculation ─────────────────────────────────
+    const config = await PlatformConfig.findOne();
+    const policy = config?.CANCELLATION_POLICY || {};
+    const freeCancelPercent   = policy.FREE_CANCEL_PERCENT            ?? 0.30;
+    const chargePercent       = policy.TOURIST_CANCEL_CHARGE_PERCENT  ?? 0.03;
+
+    // Build ride start datetime from booking.date + booking.startTime (e.g. "14:00")
+    let rideStart = null;
+    try {
+        const [h, m] = (booking.startTime || "00:00").split(":").map(Number);
+        rideStart = new Date(booking.date);
+        rideStart.setHours(h, m, 0, 0);
+    } catch (_) {}
+
+    const bookingCreated = booking.createdAt;
+    const now = new Date();
+
+    let chargeAmount = 0;
+    let refundAmount = booking.pricing?.advanceAmount || 0;
+    let refundStatus = "not_applicable";
+
+    if (rideStart && bookingCreated && rideStart > bookingCreated) {
+        const totalGapMs   = rideStart.getTime() - bookingCreated.getTime();
+        const freeWindowMs = totalGapMs * freeCancelPercent;
+        const freeDeadline = new Date(bookingCreated.getTime() + freeWindowMs);
+
+        if (now > freeDeadline) {
+            // After free window — apply 3% charge
+            const totalAmount = booking.pricing?.totalAmount || 0;
+            chargeAmount = Math.round(totalAmount * chargePercent);
+            refundAmount = Math.max((booking.pricing?.advanceAmount || 0) - chargeAmount, 0);
+            refundStatus = "pending"; // Razorpay refund to be triggered
+        } else {
+            // Within free window — full refund
+            refundStatus = "pending";
+        }
+    }
+
+    booking.bookingStatus      = "cancelled";
     booking.cancellationReason = reason || "Not specified";
-    booking.cancelledBy = "tourist";
+    booking.cancelledBy        = "tourist";
+    booking.cancellation = {
+        chargePercent,
+        chargeAmount,
+        refundAmount,
+        riderPenalty:  0,
+        refundStatus,
+        cancelledAt:   now
+    };
+
     await booking.save();
-    return booking;
+
+    return {
+        booking,
+        cancellation: {
+            isFree:       chargeAmount === 0,
+            chargeAmount,
+            refundAmount,
+            note: chargeAmount === 0
+                ? "Cancelled within free window — full advance will be refunded."
+                : `₹${chargeAmount} cancellation charge applied. ₹${refundAmount} will be refunded.`
+        }
+    };
 };
 
 

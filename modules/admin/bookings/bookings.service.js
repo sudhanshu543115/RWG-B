@@ -61,6 +61,7 @@ export const assignRiderToBooking = async (id, riderId) => {
             riderId: riderId, 
             bookingStatus: "assigned",
             assignmentStatus: "admin_assigned",
+            assignedAt: new Date(),
             rideOTP: otp,
             endRideOTP: endOtp,
             "tracking.endOtpVerified": false,
@@ -140,6 +141,7 @@ export const autoAssignRiderService = async (bookingId) => {
     booking.riderId = bestRider._id;
     booking.bookingStatus = "assigned";
     booking.assignmentStatus = "rider_selected";
+    booking.assignedAt = new Date();
     booking.rideOTP = otp;
     booking.endRideOTP = endOtp;
     if (!booking.tracking) booking.tracking = {};

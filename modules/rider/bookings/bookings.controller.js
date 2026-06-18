@@ -146,18 +146,19 @@ export const cancelBooking = async (req, res) => {
     try {
         const { id } = req.params;
         const { reason } = req.body;
-        const updatedBooking = await cancelBookingService(req.user._id, id, reason);
+        const result = await cancelBookingService(req.user._id, id, reason);
 
         // Notify tourist and admin about the cancellation via socket
         import('../../../core/socket.events.js').then(({ notifyTouristBookingCancelled, notifyAdminBookingCancelled }) => {
-            notifyTouristBookingCancelled(updatedBooking);
-            notifyAdminBookingCancelled(updatedBooking);
+            notifyTouristBookingCancelled(result.booking);
+            notifyAdminBookingCancelled(result.booking);
         });
         
         return res.status(200).json({
             success: true,
-            message: "Booking cancelled successfully.",
-            data: updatedBooking
+            message: result.cancellation.note,
+            data: result.booking,
+            cancellation: result.cancellation
         });
     } catch (error) {
         console.error("Error in cancelBooking (rider):", error);
