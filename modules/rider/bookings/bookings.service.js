@@ -476,7 +476,19 @@ export const cancelBookingService = async (riderId, bookingId, reason) => {
     // Build ride start datetime from booking.date + booking.startTime
     let rideStart = null;
     try {
-        const [h, m] = (booking.startTime || "00:00").split(":").map(Number);
+        let timeStr = booking.startTime || "00:00";
+        const match = timeStr.trim().match(/^(\d+):(\d+)\s*(AM|PM)?$/i);
+        let h = 0, m = 0;
+        if (match) {
+            h = parseInt(match[1], 10);
+            m = parseInt(match[2], 10);
+            const period = match[3] ? match[3].toUpperCase() : null;
+            if (period === "PM" && h !== 12) h += 12;
+            if (period === "AM" && h === 12) h = 0;
+        } else {
+            [h, m] = timeStr.split(":").map(Number);
+        }
+        
         rideStart = new Date(booking.date);
         rideStart.setHours(h, m, 0, 0);
     } catch (_) {}
