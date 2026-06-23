@@ -181,10 +181,29 @@ export const createBookingService = async (userId, bookingData) => {
         const rideTypeConfig = config?.RIDE_TYPES.find(rt => rt.id === durationType);
         const hoursToAdd = rideTypeConfig?.hours || 5;
         
-        const [h, m] = startTime.split(':').map(Number);
-        const endH = (h + hoursToAdd) % 24;
+        let h = 0, m = 0, isAmPm = false, period = 'AM';
+        if (startTime.toUpperCase().includes('AM') || startTime.toUpperCase().includes('PM')) {
+            isAmPm = true;
+            const parts = startTime.trim().split(' ');
+            [h, m] = parts[0].split(':').map(Number);
+            period = parts[1]?.toUpperCase() || 'AM';
+            if (period === 'PM' && h !== 12) h += 12;
+            if (period === 'AM' && h === 12) h = 0;
+        } else {
+            [h, m] = startTime.split(':').map(Number);
+        }
+
+        let endH = (h + hoursToAdd) % 24;
         
-        endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        if (isAmPm) {
+            const outPeriod = endH >= 12 ? 'PM' : 'AM';
+            let outH = endH % 12;
+            if (outH === 0) outH = 12;
+            endTime = `${String(outH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${outPeriod}`;
+        } else {
+            endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+        
         totalHours = hoursToAdd;
     }
 
