@@ -25,6 +25,7 @@ const notificationSchema = new mongoose.Schema(
         "payout_processed",
         "payout_rejected",
         "rider_interested",
+        "refund_processed",
         "general",
         "emergency_sos"
       ],
