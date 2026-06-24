@@ -118,6 +118,19 @@ const remainingAmount =
   }
 };
 
+export const processRazorpayRefund = async (paymentId, amountInRupees) => {
+    try {
+        const amountInPaise = Math.round(amountInRupees * 100);
+        const refund = await razorpay.payments.refund(paymentId, {
+            amount: amountInPaise
+        });
+        return refund;
+    } catch (error) {
+        console.error("Error processing Razorpay refund:", error);
+        throw error;
+    }
+};
+
 export const getPaymentHistoryService = async (userId) => {
     try {
         // Find all bookings for this user that have at least one payment
