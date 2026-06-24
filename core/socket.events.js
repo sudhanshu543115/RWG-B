@@ -121,18 +121,18 @@ function notifyTouristRiderAssigned(booking, rider) {
     emitToRoom(
       `tourist:${touristId}`,
       "rider-assigned",
-      payload,
-      // 🔔 Save notification
-      createNotification({
-        recipientId: touristId,
-        recipientRole: "tourist",
-        type: "rider_assigned",
-        title: "Rider Assigned",
-        message: `Your ride has been assigned to ${rider.name}`,
-        bookingId: booking._id,
-      })
-
+      payload
     );
+
+    // 🔔 Save notification
+    createNotification({
+      recipientId: touristId,
+      recipientRole: "tourist",
+      type: "rider_assigned",
+      title: "Rider Assigned",
+      message: `Your ride has been assigned to ${rider.name}`,
+      bookingId: booking._id,
+    });
 
     console.log("📡 NOTIFIED TOURIST:", touristId);
   } catch (error) {
@@ -156,18 +156,18 @@ function notifyRiderAssigned(booking, rider) {
 
     emitToRoom(
       `rider:${rider._id}`,
-      "ride-assigned",   // 👈 event name
-      payload,
-      createNotification({
-        recipientId: rider._id,
-        recipientRole: "rider",
-        type: "rider_assigned",
-        title: "New Ride Assigned",
-        message: `You have been assigned for a ride in ${booking.city}`,
-        bookingId: booking._id,
-      })
-
+      "ride-assigned",
+      payload
     );
+
+    createNotification({
+      recipientId: rider._id,
+      recipientRole: "rider",
+      type: "rider_assigned",
+      title: "New Ride Assigned",
+      message: `You have been assigned for a ride in ${booking.city}`,
+      bookingId: booking._id,
+    });
 
     console.log("📡 NOTIFIED RIDER:", rider._id);
   } catch (error) {
@@ -418,6 +418,36 @@ function notifyTouristBookingCancelled(booking) {
   }
 }
 
+function notifyTouristRefundProcessed(booking, amount) {
+  try {
+    let touristId;
+    if (booking.touristId && typeof booking.touristId === 'object') {
+      touristId = booking.touristId._id?.toString();
+    } else {
+      touristId = booking.touristId?.toString();
+    }
+    if (!touristId) return;
+
+    emitToRoom(`tourist:${touristId}`, "refund-processed", {
+      bookingId: booking._id,
+      amount: amount,
+      message: `Your refund of ₹${amount} has been successfully processed.`
+    });
+
+    createNotification({
+      recipientId: touristId,
+      recipientRole: "tourist",
+      type: "refund_processed",
+      title: "Refund Processed",
+      message: `Your refund of ₹${amount} for booking in ${booking.city} has been processed.`,
+      bookingId: booking._id,
+    });
+
+  } catch (error) {
+    console.error("❌ Tourist refund notify error:", error.message);
+  }
+}
+
 export {
   initSocketEvents,
   getIO,
@@ -433,5 +463,6 @@ export {
   notifyRiderPayoutProcessed,
   notifyRiderPayoutRejected,
   notifyRideTrackingUpdated,
-  notifyAdminEmergencySOS
+  notifyAdminEmergencySOS,
+  notifyTouristRefundProcessed
 };
