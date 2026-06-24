@@ -10,8 +10,10 @@ import {
     notifyMatchedRidersNewBooking, 
     notifyRidersBookingCancelled, 
     notifyAdminBookingCancelled,
-    notifyAdminEmergencySOS
+    notifyAdminEmergencySOS,
+    notifyTouristRefundProcessed
 } from "../../../core/socket.events.js";
+import { sendTouristRefundEmail } from "../../../core/touristEmails.js";
 import Booking from "../../../models/tourist/Booking.js";
 
 export const getBookingEstimate = async (req, res) => {
@@ -92,6 +94,20 @@ export const cancelBooking = async (req, res) => {
         // Notify riders and admin about the cancellation via socket
         notifyRidersBookingCancelled(result.booking);
         notifyAdminBookingCancelled(result.booking);
+        
+        // Notify tourist if refund is due (processed or pending)
+        console.log("🔁 refundStatus:", result.cancellation.refundStatus, "| refundAmount:", result.cancellation.refundAmount);
+        if (["processed", "pending"].includes(result.cancellation.refundStatus) && result.cancellation.refundAmount > 0) {
+            notifyTouristRefundProcessed(result.booking, result.cancellation.refundAmount);
+            // Use email from req.user (full user doc from DB via protectTourist)
+            const touristEmail = req.user?.email;
+            console.log("📧 Tourist email for refund mail:", touristEmail);
+            if (touristEmail) {
+                sendTouristRefundEmail(touristEmail, result.cancellation.refundAmount);
+            } else {
+                console.warn("⚠️ No tourist email found — skipping refund email.");
+            }
+        }
         
         return res.status(200).json({
             success: true,
