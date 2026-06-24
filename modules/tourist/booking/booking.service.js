@@ -2,6 +2,7 @@ import Booking from "../../../models/tourist/Booking.js";
 import Settings from "../../../models/admin/Setting.js";
 import Rider from "../../../models/rider/Rider.js";
 import PlatformConfig from "../../../models/admin/PlatformConfig.js";
+import { processRazorpayRefund } from "../payment/payment.service.js";
 
 // Calculates distance between two points in KM
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -381,10 +382,10 @@ export const cancelBookingService = async (userId, bookingId, reason) => {
         const freeDeadline = new Date(bookingCreated.getTime() + freeWindowMs);
 
         if (now > freeDeadline) {
-            // After free window — apply 3% charge
-            const totalAmount = booking.pricing?.totalAmount || 0;
-            chargeAmount = Math.round(totalAmount * chargePercent);
-            refundAmount = Math.max((booking.pricing?.advanceAmount || 0) - chargeAmount, 0);
+            // After free window — apply 3% charge on advance amount
+            const advanceAmount = booking.pricing?.advanceAmount || 0;
+            chargeAmount = Math.round(advanceAmount * chargePercent);
+            refundAmount = Math.max(advanceAmount - chargeAmount, 0);
             refundStatus = "pending"; // Razorpay refund to be triggered
         } else {
             // Within free window — full refund
@@ -395,13 +396,33 @@ export const cancelBookingService = async (userId, bookingId, reason) => {
     booking.bookingStatus      = "cancelled";
     booking.cancellationReason = reason || "Not specified";
     booking.cancelledBy        = "tourist";
+
+    let refundId = undefined;
+    if (refundAmount > 0 && refundStatus === "pending" && booking.payment?.transactionId) {
+        try {
+            const refundRes = await processRazorpayRefund(booking.payment.transactionId, refundAmount);
+            if (refundRes && refundRes.id) {
+                refundStatus = "processed";
+                refundId = refundRes.id;
+            }
+        } catch (error) {
+            console.error("Failed to process tourist Razorpay refund during cancellation:", error);
+            refundStatus = "failed";
+        }
+    } else if (refundAmount > 0 && refundStatus === "pending" && !booking.payment?.transactionId) {
+        refundStatus = "failed";
+    }
+
     booking.cancellation = {
         chargePercent,
         chargeAmount,
         refundAmount,
         riderPenalty:  0,
+        refundId,
         refundStatus,
-        cancelledAt:   now
+        cancelledAt:   now,
+        cancelledBy:   "tourist",
+        reason:        reason || "Not specified"
     };
 
     await booking.save();
@@ -409,9 +430,11 @@ export const cancelBookingService = async (userId, bookingId, reason) => {
     return {
         booking,
         cancellation: {
-            isFree:       chargeAmount === 0,
+            isFree:        chargeAmount === 0,
             chargeAmount,
             refundAmount,
+            refundStatus,
+            refundId,
             note: chargeAmount === 0
                 ? "Cancelled within free window — full advance will be refunded."
                 : `₹${chargeAmount} cancellation charge applied. ₹${refundAmount} will be refunded.`
