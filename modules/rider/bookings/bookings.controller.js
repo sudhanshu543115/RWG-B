@@ -92,33 +92,36 @@ export const verifyEndRideOtp = async (req, res) => {
 
 export const completeRide = async (req, res) => {
     try {
-const { booking, paymentLink, remainingAmount } = 
-    await completeRideService(req.user._id, req.params.id);
+        const { booking, paymentLink, remainingAmount } =
+            await completeRideService(req.user._id, req.params.id);
 
-res.status(200).json({
-    success: true,
-    message: "Ride completion initiated. Please collect payment.",
-    data: booking,
-    paymentLink,
-    remainingAmount
-});
+        res.status(200).json({
+            success: true,
+            message: "Ride completion initiated. Please collect payment.",
+            data: booking,
+            paymentLink,
+            remainingAmount
+        });
 
-// Notify tourist if completed immediately (0 remaining)
-if (booking.bookingStatus === 'completed') {
-    notifyTouristRideCompleted(booking);
-}
+        // Notify tourist if completed immediately (0 remaining)
+        if (booking.bookingStatus === 'completed') {
+            notifyTouristRideCompleted(booking);
+        }
     } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
+        console.error("Complete ride error:", error); // This will log the REAL error in your terminal!
+        const errorMessage = error.message || error.error?.description || error.description || "Failed to initiate completion";
+        res.status(400).json({ success: false, message: errorMessage });
     }
+
 };
 
 export const verifyPaymentAndComplete = async (req, res) => {
     try {
         const booking = await verifyAndCompleteRideService(req.user._id, req.params.id);
-        res.status(200).json({ 
-            success: true, 
-            message: "Payment verified and ride completed! 🎉", 
-            data: booking 
+        res.status(200).json({
+            success: true,
+            message: "Payment verified and ride completed! 🎉",
+            data: booking
         });
 
         // Notify tourist via socket
@@ -153,7 +156,7 @@ export const cancelBooking = async (req, res) => {
             notifyTouristBookingCancelled(result.booking);
             notifyAdminBookingCancelled(result.booking);
         });
-        
+
         return res.status(200).json({
             success: true,
             message: result.cancellation.note,

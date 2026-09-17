@@ -152,9 +152,7 @@ const bookingSchema = new mongoose.Schema({
     riderPenalty:   { type: Number, default: 0 },      // ₹ deducted from rider wallet
     refundId:       { type: String },                  // Razorpay refund ID
     refundStatus:   { type: String, enum: ['pending', 'processed', 'failed', 'not_applicable'] },
-    cancelledAt:    { type: Date },
-    cancelledBy:    { type: String, enum: ['tourist', 'rider', 'admin'] },
-    reason:         { type: String }
+    cancelledAt:    { type: Date }
   },
 
   assignmentStatus: {
