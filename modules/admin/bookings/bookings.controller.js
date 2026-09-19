@@ -6,7 +6,8 @@ import {
     assignRiderToBooking,
     autoAssignRiderService,
     getSettingsService,
-    toggleAutoAssignService
+    toggleAutoAssignService,
+    processRefundService
 
 } from "./bookings.service.js";
 import { notifyTouristRiderAssigned } from "../../../core/socket.events.js";
@@ -123,6 +124,16 @@ export const toggleAutoAssign = async (req, res) => {
             message: `Auto-assign is now ${settings.autoAssign ? "ON" : "OFF"}`,
             data: settings 
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const processRefundController = async (req, res) => {
+    try {
+        const { refundStatus, refundId } = req.body;
+        const booking = await processRefundService(req.params.id, refundStatus, refundId);
+        res.status(200).json({ success: true, message: "Refund status updated", data: booking });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -194,3 +194,20 @@ export const toggleAutoAssignService = async () => {
     return settings;
 };
 
+export const processRefundService = async (bookingId, refundStatus, refundId) => {
+    const booking = await Booking.findById(bookingId);
+    if (!booking) throw new Error("Booking not found");
+    
+    if (!booking.cancellation) {
+        throw new Error("This booking does not have cancellation data");
+    }
+    
+    booking.cancellation.refundStatus = refundStatus;
+    if (refundId) {
+        booking.cancellation.refundId = refundId;
+    }
+    
+    await booking.save();
+    return booking;
+};
+

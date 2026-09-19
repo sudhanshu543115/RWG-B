@@ -7,7 +7,8 @@ import {
     assignRiderToBookingController,
     autoAssignRiderController,
     getSettings,
-    toggleAutoAssign
+    toggleAutoAssign,
+    processRefundController
 } from "./bookings.controller.js";
 
 const router = Router();
@@ -23,5 +24,6 @@ router.get("/:id", getBookingByIdController);
 router.delete("/:id", deleteBookingController);
 router.put("/:id/assign", assignRiderToBookingController);
 router.put("/:id/auto-assign", autoAssignRiderController);
+router.put("/:id/refund", processRefundController);
 
 export default router;
