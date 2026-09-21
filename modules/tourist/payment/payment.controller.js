@@ -1,4 +1,4 @@
-import { createRazorpayOrder, verifyRazorpayPayment, getPaymentHistoryService } from "./payment.service.js";
+import { createRazorpayOrder, verifyRazorpayPayment, getPaymentHistoryService, createRefundRequest, getRefundRequests, updateRefundRequest, saveRefundDetailsService, fixExistingRefundRequests } from "./payment.service.js";
 import { notifyMatchedRidersNewBooking } from "../../../core/socket.events.js";
 
 
@@ -56,6 +56,76 @@ export const getPaymentHistory = async (req, res) => {
         return res.status(400).json({
             success: false,
             message: error.message || "Failed to fetch payment history."
+        });
+    }
+};
+
+export const createRefundRequestController = async (req, res) => {
+    try {
+        const { bookingId, refundDetails } = req.body;
+        const refundRequest = await createRefundRequest(req.user._id, bookingId, refundDetails);
+        return res.status(200).json({
+            success: true,
+            message: "Refund request submitted successfully.",
+            data: refundRequest
+        });
+    } catch (error) {
+        console.error("Error in createRefundRequestController:", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to submit refund request."
+        });
+    }
+};
+
+export const getRefundRequestsController = async (req, res) => {
+    try {
+        const refundRequests = await getRefundRequests(req.user._id);
+        return res.status(200).json({
+            success: true,
+            message: "Refund requests retrieved successfully.",
+            data: refundRequests
+        });
+    } catch (error) {
+        console.error("Error in getRefundRequestsController:", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to fetch refund requests."
+        });
+    }
+};
+
+export const saveRefundDetailsController = async (req, res) => {
+    try {
+        const { paymentMethod, upiId, bankAccount } = req.body;
+        const updatedUser = await saveRefundDetailsService(req.user._id, { paymentMethod, upiId, bankAccount });
+        return res.status(200).json({
+            success: true,
+            message: "Refund details saved successfully.",
+            data: updatedUser
+        });
+    } catch (error) {
+        console.error("Error in saveRefundDetailsController:", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to save refund details."
+        });
+    }
+};
+
+export const fixExistingRefundRequestsController = async (req, res) => {
+    try {
+        const fixedCount = await fixExistingRefundRequests();
+        return res.status(200).json({
+            success: true,
+            message: `Fixed ${fixedCount} existing refund requests.`,
+            data: { fixedCount }
+        });
+    } catch (error) {
+        console.error("Error in fixExistingRefundRequestsController:", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to fix existing refund requests."
         });
     }
 };

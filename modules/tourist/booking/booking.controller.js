@@ -4,7 +4,8 @@ import {
     getBookingByIdService, 
     cancelBookingService ,
     rateRiderService,
-    getBookingEstimateService
+    getBookingEstimateService,
+    getDashboardDataService
 } from "./booking.service.js";
 import { 
     notifyMatchedRidersNewBooking, 
@@ -157,6 +158,23 @@ export const rateRider = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: error.message || "Failed to trigger SOS alert"
+        });
+    }
+};
+
+export const getDashboardData = async (req, res) => {
+    try {
+        const dashboardData = await getDashboardDataService(req.user._id);
+        return res.status(200).json({
+            success: true,
+            message: "Dashboard data retrieved successfully.",
+            data: dashboardData
+        });
+    } catch (error) {
+        console.error("Error in getDashboardData:", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to retrieve dashboard data."
         });
     }
 };

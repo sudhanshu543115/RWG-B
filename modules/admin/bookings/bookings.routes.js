@@ -8,7 +8,9 @@ import {
     autoAssignRiderController,
     getSettings,
     toggleAutoAssign,
-    processRefundController
+    processRefundController,
+    getRefundRequestsController,
+    processTouristRefundController
 } from "./bookings.controller.js";
 
 const router = Router();
@@ -18,6 +20,10 @@ router.use(protectAdmin);
 // Settings routes (MUST be before /:id routes)
 router.get("/settings", getSettings);
 router.patch("/settings/auto-assign", toggleAutoAssign);
+
+// Refund requests routes (MUST be before /:id routes)
+router.get("/refund-requests", getRefundRequestsController);
+router.put("/refund-requests/:id/process", processTouristRefundController);
 
 router.get("/", getAllBookingsController);
 router.get("/:id", getBookingByIdController);

@@ -7,6 +7,7 @@ import { autoAssignRiderService } from "../../admin/bookings/bookings.service.js
 import razorpay from "../../../config/razorpay.js";
 import User from "../../../models/tourist/User.js";
 import PlatformConfig from "../../../models/admin/PlatformConfig.js";
+import RefundRequest from "../../../models/tourist/RefundRequest.js";
 
 // Get all pending bookings matching rider's city & language
 export const getPendingBookingsForRider = async (riderId) => {
@@ -528,10 +529,54 @@ export const cancelBookingService = async (riderId, bookingId, reason) => {
         refundAmount,              // tourist gets full advance back
         riderPenalty,
         refundStatus:  refundAmount > 0 ? "pending" : "not_applicable",
-        cancelledAt:   now
+        cancelledAt:   now,
+        cancelledBy:   "rider",
+        reason:        reason || "Not specified"
     };
 
     await booking.save();
+
+    // Create refund request for tourist when rider cancels
+    if (refundAmount > 0) {
+        try {
+            const tourist = await User.findById(booking.touristId);
+            const refundDetails = tourist?.refundDetails || {
+                paymentMethod: 'original_payment_method',
+                upiId: '',
+                bankAccount: {
+                    accountNumber: '',
+                    accountHolder: '',
+                    ifsc: '',
+                    bankName: ''
+                }
+            };
+
+            const refundRequest = new RefundRequest({
+                touristId: booking.touristId,
+                bookingId: booking._id,
+                cancellation: {
+                    chargeAmount: booking.cancellation.chargeAmount || 0,
+                    refundAmount: booking.cancellation.refundAmount || 0,
+                    refundStatus: booking.cancellation.refundStatus,
+                    cancelledAt: booking.cancellation.cancelledAt,
+                    cancelledBy: booking.cancellation.cancelledBy || booking.cancelledBy || 'rider',
+                    reason: booking.cancellation.reason || booking.cancellationReason || reason || 'Rider cancelled the booking'
+                },
+                refundDetails: {
+                    ...refundDetails,
+                    originalPaymentMethod: {
+                        transactionId: booking.payment?.transactionId,
+                        method: booking.payment?.method
+                    }
+                }
+            });
+            await refundRequest.save();
+            console.log("📝 Refund request created for tourist due to rider cancellation:", refundRequest._id);
+        } catch (error) {
+            console.error("❌ Error creating refund request:", error);
+            // Don't fail the cancellation if refund request creation fails
+        }
+    }
 
     return {
         booking,

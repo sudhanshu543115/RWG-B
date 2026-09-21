@@ -2,6 +2,7 @@ import Booking from "../../../models/tourist/Booking.js";
 import User from "../../../models/tourist/User.js";
 import Rider from "../../../models/rider/Rider.js";
 import Settings from "../../../models/admin/Setting.js";
+import RefundRequest from "../../../models/tourist/RefundRequest.js";
 import { notifyTouristRiderAssigned , notifyRiderAssigned} from "../../../core/socket.events.js";
 import Conversation from "../../../models/chat/Conversation.js";
 
@@ -25,7 +26,7 @@ export const getAllBookings = async () => {
 
 export const getBookingById = async (id) => {
     const booking = await Booking.findById(id)
-        .populate("touristId")
+        .populate("touristId", "name email phone nationality preferredLanguage profileImage refundDetails")
         .populate("riderId")
         .populate("interestedRiders.riderId", "name phone city rating")
         .lean();
@@ -209,5 +210,37 @@ export const processRefundService = async (bookingId, refundStatus, refundId) =>
     
     await booking.save();
     return booking;
+};
+
+export const getRefundRequestsService = async () => {
+    try {
+        const refundRequests = await RefundRequest.find()
+            .populate('touristId', 'name email phone')
+            .populate('bookingId', 'city date startTime durationType pricing')
+            .sort({ createdAt: -1 });
+        return refundRequests;
+    } catch (error) {
+        console.error("Error fetching refund requests:", error);
+        throw error;
+    }
+};
+
+export const processTouristRefundService = async (refundRequestId, adminId, refundStatus, razorpayRefundId, adminNotes) => {
+    try {
+        const refundRequest = await RefundRequest.findById(refundRequestId);
+        if (!refundRequest) throw new Error("Refund request not found");
+
+        refundRequest.cancellation.refundStatus = refundStatus;
+        refundRequest.razorpayRefundId = razorpayRefundId;
+        refundRequest.adminNotes = adminNotes;
+        refundRequest.processedBy = adminId;
+        refundRequest.processedAt = new Date();
+
+        await refundRequest.save();
+        return refundRequest;
+    } catch (error) {
+        console.error("Error processing tourist refund:", error);
+        throw error;
+    }
 };
 

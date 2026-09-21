@@ -2,6 +2,9 @@ import Booking from "../../../models/tourist/Booking.js";
 import Settings from "../../../models/admin/Setting.js";
 import Rider from "../../../models/rider/Rider.js";
 import PlatformConfig from "../../../models/admin/PlatformConfig.js";
+import User from "../../../models/tourist/User.js";
+import RefundRequest from "../../../models/tourist/RefundRequest.js";
+import mongoose from "mongoose";
 
 // Calculates distance between two points in KM
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -312,6 +315,66 @@ export const getBookingsService = async (userId) => {
     return bookings;
 };
 
+export const getDashboardDataService = async (userId) => {
+    try {
+        // Aggregate statistics in a single query
+        const stats = await Booking.aggregate([
+            { $match: { touristId: new mongoose.Types.ObjectId(userId) } },
+            {
+                $group: {
+                    _id: null,
+                    totalTrips: { $sum: 1 },
+                    citiesExplored: { $addToSet: "$city" },
+                    upcomingTrips: {
+                        $sum: {
+                            $cond: [
+                                { $in: ["$bookingStatus", ["assigned", "pending", "searching", "ongoing"]] },
+                                1,
+                                0
+                            ]
+                        }
+                    },
+                    completedTrips: {
+                        $sum: {
+                            $cond: [{ $eq: ["$bookingStatus", "completed"] }, 1, 0]
+                        }
+                    }
+                }
+            }
+        ]);
+
+        const statsData = stats[0] || {
+            totalTrips: 0,
+            citiesExplored: [],
+            upcomingTrips: 0,
+            completedTrips: 0
+        };
+
+        // Get upcoming trips (limit to 4)
+        const upcomingTrips = await Booking.find({
+            touristId: userId,
+            bookingStatus: { $in: ["assigned", "pending", "searching", "ongoing"] }
+        })
+            .populate("riderId", "name phone profileImage vehicleModel vehicleNumber vehicleType rating")
+            .select("city date startTime endTime bookingStatus pickupAddress estimatedPrice pricing")
+            .sort({ date: 1, startTime: 1 })
+            .limit(4);
+
+        return {
+            stats: {
+                totalTrips: statsData.totalTrips,
+                citiesExplored: statsData.citiesExplored.length,
+                upcomingTrips: statsData.upcomingTrips,
+                completedTrips: statsData.completedTrips
+            },
+            upcomingTrips
+        };
+    } catch (error) {
+        console.error("Error in getDashboardDataService:", error);
+        throw error;
+    }
+};
+
 export const getBookingByIdService = async (userId, bookingId) => {
     const booking = await Booking.findOne({ touristId: userId, _id: bookingId })
         .populate("riderId", "name phone profileImage vehicleModel vehicleNumber vehicleType rating")
@@ -401,10 +464,54 @@ export const cancelBookingService = async (userId, bookingId, reason) => {
         refundAmount,
         riderPenalty:  0,
         refundStatus,
-        cancelledAt:   now
+        cancelledAt:   now,
+        cancelledBy:   "tourist",
+        reason:        reason || "Not specified"
     };
 
     await booking.save();
+
+    // Create refund request with tourist's saved refund details
+    if (refundAmount > 0) {
+        try {
+            const tourist = await User.findById(userId);
+            const refundDetails = tourist?.refundDetails || {
+                paymentMethod: 'original_payment_method',
+                upiId: '',
+                bankAccount: {
+                    accountNumber: '',
+                    accountHolder: '',
+                    ifsc: '',
+                    bankName: ''
+                }
+            };
+
+            const refundRequest = new RefundRequest({
+                touristId: userId,
+                bookingId: booking._id,
+                cancellation: {
+                    chargeAmount: booking.cancellation.chargeAmount || 0,
+                    refundAmount: booking.cancellation.refundAmount || 0,
+                    refundStatus: booking.cancellation.refundStatus,
+                    cancelledAt: booking.cancellation.cancelledAt,
+                    cancelledBy: booking.cancellation.cancelledBy || booking.cancelledBy || 'tourist',
+                    reason: booking.cancellation.reason || booking.cancellationReason || reason || 'Not specified'
+                },
+                refundDetails: {
+                    ...refundDetails,
+                    originalPaymentMethod: {
+                        transactionId: booking.payment?.transactionId,
+                        method: booking.payment?.method
+                    }
+                }
+            });
+            await refundRequest.save();
+            console.log("📝 Refund request created for tourist:", refundRequest._id);
+        } catch (error) {
+            console.error("❌ Error creating refund request:", error);
+            // Don't fail the cancellation if refund request creation fails
+        }
+    }
 
     return {
         booking,

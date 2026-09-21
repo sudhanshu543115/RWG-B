@@ -42,11 +42,11 @@ router.use("/api/config", platformConfigRoutes);
 router.use("/api/tourist/auth", touristAuthRoutes);
 router.use("/api/tourist/profile", touristProfileRoutes);
 router.use("/api/tourist/booking", touristBookingRoutes);
+router.use("/api/payment", touristPaymentRoutes);
 
 // Rider Routes
 router.use("/api/rider/auth", riderAuthRoutes);
 router.use("/api/rider/profile", riderProfileRoutes);
-router.use("/api/payment", touristPaymentRoutes);
 router.use("/api/rider/bookings", riderBookingRoutes);
 router.use("/api/rider/earnings", riderEarningsRoutes);
 router.use("/api/rider/stats", riderStatsRoutes);
