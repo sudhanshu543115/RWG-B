@@ -6,10 +6,11 @@ import {
     assignRiderToBooking,
     autoAssignRiderService,
     getSettingsService,
-    toggleAutoAssignService
-
+    toggleAutoAssignService,
+    processRefundService
 } from "./bookings.service.js";
 import { notifyTouristRiderAssigned } from "../../../core/socket.events.js";
+import RefundRequest from "../../../models/tourist/RefundRequest.js";
 
 
 
@@ -123,6 +124,47 @@ export const toggleAutoAssign = async (req, res) => {
             message: `Auto-assign is now ${settings.autoAssign ? "ON" : "OFF"}`,
             data: settings 
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const processRefundController = async (req, res) => {
+    try {
+        const { refundStatus, refundId } = req.body;
+        const booking = await processRefundService(req.params.id, refundStatus, refundId);
+        res.status(200).json({ success: true, message: "Refund status updated", data: booking });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getRefundRequestsController = async (req, res) => {
+    try {
+        const refundRequests = await RefundRequest.find()
+            .populate('touristId', 'name email phone refundDetails')
+            .populate('bookingId', 'city date startTime durationType pricing')
+            .sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: refundRequests });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const processTouristRefundController = async (req, res) => {
+    try {
+        const { refundStatus, razorpayRefundId, adminNotes } = req.body;
+        const refundRequest = await RefundRequest.findById(req.params.id);
+        if (!refundRequest) throw new Error("Refund request not found");
+
+        refundRequest.cancellation.refundStatus = refundStatus;
+        refundRequest.razorpayRefundId = razorpayRefundId;
+        refundRequest.adminNotes = adminNotes;
+        refundRequest.processedBy = req.admin._id;
+        refundRequest.processedAt = new Date();
+
+        await refundRequest.save();
+        res.status(200).json({ success: true, message: "Tourist refund processed", data: refundRequest });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -141,10 +141,24 @@ export const initSocket = (server) => {
 
         const populatedMessage = await Message.findById(newMessage._id);
 
+        // Emit to chat room for users in the chat
         io.to(`chat:${bookingId}`).emit(
           "receive-message",
           populatedMessage
         );
+
+        // Emit notification to the receiver's specific room if they're not in chat
+        const receiverRoom = senderRole === "tourist" ? `rider:${receiverId}` : `tourist:${receiverId}`;
+        console.log(`🔔 Sending chat notification to ${receiverRoom} for booking ${bookingId}`);
+        
+        io.to(receiverRoom).emit("new-chat-message", {
+          bookingId,
+          senderId,
+          senderRole,
+          senderName: senderRole === "tourist" ? "Tourist" : "Guide",
+          message: message?.substring(0, 50) + (message?.length > 50 ? "..." : ""),
+          conversationId: conversation._id
+        });
 
         console.log("💬 NEW MESSAGE:", message);
 

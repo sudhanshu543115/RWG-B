@@ -6,7 +6,8 @@ import {
     cancelBooking,
     rateRider,
     getBookingEstimate,
-    triggerSOS
+    triggerSOS,
+    getDashboardData
 } from "./booking.controller.js";
 import { protectTourist } from "../../../middleware/auth.middleware.js";
 
@@ -15,6 +16,7 @@ const router = express.Router();
 router.use(protectTourist);
 
 router.post("/estimate", getBookingEstimate);
+router.get("/dashboard", getDashboardData);
 
 router.route("/")
     .post(createBooking)

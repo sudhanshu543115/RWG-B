@@ -12,6 +12,16 @@ const userSchema = new mongoose.Schema({
     walletBalance: { type: Number, default: 0 },
     tripsCount: { type: Number, default: 0 },
     profileImage: { type: String,  default: "" },
+    refundDetails: {
+        paymentMethod: { type: String, enum: ['upi', 'bank_transfer', 'original_payment_method'], default: 'original_payment_method' },
+        upiId: { type: String, default: "" },
+        bankAccount: {
+            accountNumber: { type: String, default: "" },
+            accountHolder: { type: String, default: "" },
+            ifsc: { type: String, default: "" },
+            bankName: { type: String, default: "" }
+        }
+    }
 }, {
     timestamps: true
 });

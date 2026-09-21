@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import Booking from "../../../models/tourist/Booking.js";
+import RefundRequest from "../../../models/tourist/RefundRequest.js";
+import User from "../../../models/tourist/User.js";
 import razorpay from "../../../config/razorpay.js";
 
 export const createRazorpayOrder = async (bookingId) => {
@@ -176,6 +178,136 @@ export const getPaymentHistoryService = async (userId) => {
         return history;
     } catch (error) {
         console.error("Error fetching payment history:", error);
+        throw error;
+    }
+};
+
+export const createRefundRequest = async (touristId, bookingId, refundDetails) => {
+    try {
+        const booking = await Booking.findById(bookingId);
+        if (!booking) throw new Error("Booking not found");
+        
+        if (booking.touristId.toString() !== touristId.toString()) {
+            throw new Error("You don't have permission to request refund for this booking");
+        }
+
+        if (!booking.cancellation || booking.cancellation.refundStatus === 'processed') {
+            throw new Error("This booking is not eligible for refund request");
+        }
+
+        const refundRequest = new RefundRequest({
+            touristId,
+            bookingId,
+            cancellation: {
+                chargeAmount: booking.cancellation.chargeAmount || 0,
+                refundAmount: booking.cancellation.refundAmount || 0,
+                refundStatus: 'pending',
+                cancelledAt: booking.cancellation.cancelledAt,
+                cancelledBy: booking.cancellation.cancelledBy,
+                reason: booking.cancellation.reason
+            },
+            refundDetails: {
+                ...refundDetails,
+                originalPaymentMethod: {
+                    transactionId: booking.payment.transactionId,
+                    method: booking.payment.method
+                }
+            }
+        });
+
+        await refundRequest.save();
+        return refundRequest;
+    } catch (error) {
+        console.error("Error creating refund request:", error);
+        throw error;
+    }
+};
+
+export const getRefundRequests = async (touristId) => {
+    try {
+        const refundRequests = await RefundRequest.find({ touristId })
+            .populate('bookingId', 'city date startTime durationType pricing payment')
+            .sort({ createdAt: -1 });
+        return refundRequests;
+    } catch (error) {
+        console.error("Error fetching refund requests:", error);
+        throw error;
+    }
+};
+
+export const updateRefundRequest = async (refundRequestId, adminId, refundStatus, razorpayRefundId, adminNotes) => {
+    try {
+        const refundRequest = await RefundRequest.findById(refundRequestId);
+        if (!refundRequest) throw new Error("Refund request not found");
+
+        refundRequest.cancellation.refundStatus = refundStatus;
+        refundRequest.razorpayRefundId = razorpayRefundId;
+        refundRequest.adminNotes = adminNotes;
+        refundRequest.processedBy = adminId;
+        refundRequest.processedAt = new Date();
+
+        await refundRequest.save();
+        return refundRequest;
+    } catch (error) {
+        console.error("Error updating refund request:", error);
+        throw error;
+    }
+};
+
+export const saveRefundDetailsService = async (touristId, refundDetails) => {
+    try {
+        const user = await User.findById(touristId);
+        if (!user) throw new Error("User not found");
+
+        user.refundDetails = {
+            paymentMethod: refundDetails.paymentMethod || 'original_payment_method',
+            upiId: refundDetails.upiId || '',
+            bankAccount: refundDetails.bankAccount || {
+                accountNumber: '',
+                accountHolder: '',
+                ifsc: '',
+                bankName: ''
+            }
+        };
+
+        await user.save();
+        return user;
+    } catch (error) {
+        console.error("Error saving refund details:", error);
+        throw error;
+    }
+};
+
+// Helper function to fix existing refund requests with missing cancelledBy and reason
+export const fixExistingRefundRequests = async () => {
+    try {
+        const Booking = (await import("../../../models/tourist/Booking.js")).default;
+        const refundRequests = await RefundRequest.find({
+            $or: [
+                { 'cancellation.cancelledBy': { $exists: false } },
+                { 'cancellation.cancelledBy': null },
+                { 'cancellation.reason': { $exists: false } },
+                { 'cancellation.reason': null }
+            ]
+        });
+
+        for (const refundRequest of refundRequests) {
+            const booking = await Booking.findById(refundRequest.bookingId);
+            if (booking) {
+                if (!refundRequest.cancellation.cancelledBy) {
+                    refundRequest.cancellation.cancelledBy = booking.cancelledBy || booking.cancellation?.cancelledBy || 'Unknown';
+                }
+                if (!refundRequest.cancellation.reason) {
+                    refundRequest.cancellation.reason = booking.cancellationReason || booking.cancellation?.reason || 'No reason provided';
+                }
+                await refundRequest.save();
+            }
+        }
+
+        console.log(`✅ Fixed ${refundRequests.length} existing refund requests`);
+        return refundRequests.length;
+    } catch (error) {
+        console.error("Error fixing existing refund requests:", error);
         throw error;
     }
 };
