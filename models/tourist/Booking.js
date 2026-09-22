@@ -190,6 +190,7 @@ const bookingSchema = new mongoose.Schema({
         "heading_to_pickup",
         "arrived_at_pickup",
         "trip_started",
+        "payment_pending",
         "heading_to_stop",
         "arrived_at_stop",
         "completed_stop",

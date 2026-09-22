@@ -1,4 +1,4 @@
-import { createRazorpayOrder, verifyRazorpayPayment, getPaymentHistoryService, createRefundRequest, getRefundRequests, updateRefundRequest, saveRefundDetailsService, fixExistingRefundRequests } from "./payment.service.js";
+import { createRazorpayOrder, verifyRazorpayPayment, getPaymentHistoryService, createRefundRequest, getRefundRequests, updateRefundRequest, saveRefundDetailsService, fixExistingRefundRequests, handlePaymentLinkWebhook } from "./payment.service.js";
 import { notifyMatchedRidersNewBooking } from "../../../core/socket.events.js";
 
 
@@ -126,6 +126,24 @@ export const fixExistingRefundRequestsController = async (req, res) => {
         return res.status(400).json({
             success: false,
             message: error.message || "Failed to fix existing refund requests."
+        });
+    }
+};
+
+export const handlePaymentLinkWebhookController = async (req, res) => {
+    try {
+        const webhookData = req.body;
+        const result = await handlePaymentLinkWebhook(webhookData);
+        return res.status(200).json({
+            success: true,
+            message: "Webhook processed successfully.",
+            data: result
+        });
+    } catch (error) {
+        console.error("Error in handlePaymentLinkWebhookController:", error);
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to process webhook."
         });
     }
 };

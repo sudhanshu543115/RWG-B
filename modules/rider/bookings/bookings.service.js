@@ -222,10 +222,10 @@ export const completeRideService = async (riderId, bookingId) => {
     const total = booking.pricing?.totalAmount || 0;
     const advance = booking.pricing?.advanceAmount || 0;
     const remaining = Math.max(total - advance, 0);
+    
     // ✅ If already completed and unpaid,
-// return existing payment link instead of creating new one
-
-if (
+    // return existing payment link instead of creating new one
+    if (
     booking.bookingStatus === "completed" &&
     booking.payment?.remainingOrderId &&
     booking.payment?.status !== "paid"
@@ -239,7 +239,8 @@ if (
         booking,
         paymentLink: existingPaymentLink.short_url,
         paymentLinkId: existingPaymentLink.id,
-        remainingAmount: booking.payment.remainingAmount || remaining
+        remainingAmount: booking.payment.remainingAmount || remaining,
+        paymentRequired: true
     };
 }
 
@@ -264,13 +265,19 @@ if (
             }
         });
 
-        paymentLink = response.short_url;
+        paymentLink = response.short_url ;
         paymentLinkId = response.id;
 
         booking.payment.remainingOrderId = paymentLinkId;
         booking.payment.remainingAmount = remaining;
+        
+        // Keep ride ongoing until payment is completed
+        booking.bookingStatus = "ongoing";
+        booking.payment.status = "partial_paid";
     } else {
+        // Payment is complete, mark as completed
         booking.bookingStatus = "completed";
+        booking.payment.status = "paid";
         await User.findByIdAndUpdate(
     booking.touristId,
     {
@@ -280,13 +287,27 @@ if (
         await creditRiderWallet(riderId, booking); // 💰 Add to wallet
     }
 
-    // Instantly mark the ride as completed
-    booking.bookingStatus = "completed";
+    // Only mark as completed if payment is fully paid
+    if (remaining <= 0) {
+        booking.bookingStatus = "completed";
+        booking.payment.status = "paid";
+        await User.findByIdAndUpdate(
+            booking.touristId,
+            {
+                $inc: { tripsCount: 1 }
+            }
+        );
+        await creditRiderWallet(riderId, booking); // 💰 Add to wallet
+    } else {
+        // Keep ride ongoing until payment is completed
+        booking.bookingStatus = "ongoing";
+        booking.payment.status = "partial_paid";
+    }
     
     if (!booking.tracking) booking.tracking = {};
-    booking.tracking.currentStage = "completed";
+    booking.tracking.currentStage = remaining <= 0 ? "completed" : "payment_pending";
     booking.tracking.stages.push({
-        stage: "completed",
+        stage: remaining <= 0 ? "completed" : "payment_pending",
         timestamp: new Date()
     });
 
@@ -295,7 +316,13 @@ if (
     // Notify tracking
     notifyRideTrackingUpdated(booking);
 
-    return { booking, paymentLink, paymentLinkId, remainingAmount: remaining };
+    return { 
+        booking, 
+        paymentLink, 
+        paymentLinkId, 
+        remainingAmount: remaining,
+        paymentRequired: remaining > 0
+    };
 };
 
 export const updateTrackingService = async (riderId, bookingId, { stage, lat, lng, stopId }) => {
