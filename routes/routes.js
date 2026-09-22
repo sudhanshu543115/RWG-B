@@ -14,6 +14,7 @@ import notificationRoutes from "../modules/notification/notification.routes.js";
 import { protectAny } from "../middleware/auth.middleware.js";
 
 import touristPaymentRoutes from "../modules/tourist/payment/payment.routes.js";
+import touristWebhookRoutes from "../modules/tourist/payment/webhook.routes.js";
 
 import adminAuthRoutes from "../modules/admin/auth/auth.routes.js";
 import adminRiderRoutes from "../modules/admin/riders/riders.routes.js";
@@ -43,6 +44,7 @@ router.use("/api/tourist/auth", touristAuthRoutes);
 router.use("/api/tourist/profile", touristProfileRoutes);
 router.use("/api/tourist/booking", touristBookingRoutes);
 router.use("/api/payment", touristPaymentRoutes);
+router.use("/api/webhook", touristWebhookRoutes);
 
 // Rider Routes
 router.use("/api/rider/auth", riderAuthRoutes);

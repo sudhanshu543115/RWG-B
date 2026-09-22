@@ -120,6 +120,99 @@ const remainingAmount =
   }
 };
 
+export const handlePaymentLinkWebhook = async (webhookData) => {
+    try {
+        const { event, payload } = webhookData;
+        
+        // Handle payment link payment successful event
+        if (event === 'payment_link.paid') {
+            const { payment, payment_link } = payload;
+            const { notes } = payment_link;
+            const bookingId = notes?.bookingId;
+            
+            if (!bookingId) {
+                console.error("Webhook: No bookingId in payment link notes");
+                return { success: false, message: "No booking ID found" };
+            }
+            
+            const booking = await Booking.findById(bookingId);
+            if (!booking) {
+                console.error("Webhook: Booking not found", bookingId);
+                return { success: false, message: "Booking not found" };
+            }
+            
+            const amountPaid = payment.amount / 100;
+            const paymentMethod = payment.method === "card" ? "Card" : 
+                               payment.method === "upi" ? "UPI" : "Net Banking";
+            
+            // Update booking payment status
+            const totalPaid = (booking.payment.amountPaid || 0) + amountPaid;
+            const remainingAmount = booking.pricing.totalAmount - totalPaid;
+            
+            booking.payment = {
+                ...booking.payment,
+                status: remainingAmount <= 0 ? "paid" : "partial_paid",
+                method: paymentMethod,
+                amountPaid: totalPaid,
+                remainingAmount: remainingAmount,
+                transactionId: payment.id,
+                paidAt: new Date()
+            };
+            
+            // Record transaction
+            booking.transactions.push({
+                transactionId: payment.id,
+                amount: amountPaid,
+                method: paymentMethod,
+                paymentType: remainingAmount <= 0 ? "full" : "remaining",
+                status: "success",
+                remainingAmount: remainingAmount,
+                paidAt: new Date()
+            });
+            
+            // If payment is complete, mark ride as completed
+            if (remainingAmount <= 0) {
+                booking.bookingStatus = "completed";
+                booking.payment.status = "paid";
+                
+                // Update tourist trip count
+                await User.findByIdAndUpdate(
+                    booking.touristId,
+                    { $inc: { tripsCount: 1 } }
+                );
+                
+                // Credit rider wallet
+                if (booking.riderId) {
+                    const Rider = (await import("../../../models/rider/Rider.js")).default;
+                    const rider = await Rider.findById(booking.riderId);
+                    if (rider) {
+                        rider.walletBalance = (rider.walletBalance || 0) + booking.pricing.guideServiceFee;
+                        rider.totalEarnings = (rider.totalEarnings || 0) + booking.pricing.guideServiceFee;
+                        await rider.save();
+                    }
+                }
+                
+                if (!booking.tracking) booking.tracking = {};
+                booking.tracking.currentStage = "completed";
+                booking.tracking.stages.push({
+                    stage: "completed",
+                    timestamp: new Date()
+                });
+            }
+            
+            await booking.save();
+            console.log("✅ Webhook: Payment link processed successfully", bookingId);
+            
+            return { success: true, booking };
+        }
+        
+        return { success: true, message: "Event not handled" };
+    } catch (error) {
+        console.error("Error handling payment link webhook:", error);
+        throw error;
+    }
+};
+
 export const getPaymentHistoryService = async (userId) => {
     try {
         // Find all bookings for this user that have at least one payment

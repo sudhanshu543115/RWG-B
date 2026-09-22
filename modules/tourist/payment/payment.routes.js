@@ -6,7 +6,8 @@ import {
     createRefundRequestController,
     getRefundRequestsController,
     saveRefundDetailsController,
-    fixExistingRefundRequestsController
+    fixExistingRefundRequestsController,
+    handlePaymentLinkWebhookController
 } from "./payment.controller.js";
 import { protectTourist } from "../../../middleware/auth.middleware.js";
 
@@ -23,4 +24,5 @@ router.get("/refund-requests", getRefundRequestsController);
 router.put("/refund-details", saveRefundDetailsController);
 router.post("/fix-existing-refunds", fixExistingRefundRequestsController);
 
+export { handlePaymentLinkWebhookController };
 export default router;
