@@ -23,7 +23,7 @@ app.use(cookieParser());
 
 // DB
 connectDB();
-const io = initSocket(server);
+const io = await  initSocket(server);
 initSocketEvents(io);
 // Routes
 app.get("/", (req, res) => {
