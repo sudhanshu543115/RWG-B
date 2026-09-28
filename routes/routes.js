@@ -56,7 +56,6 @@ router.use("/api/rider/config", riderConfigRoutes);
 router.use("/api/rider/withdrawal", riderWithdrawalRoutes);
 router.use("/api/rider/payment-method", riderPaymentMethodRoutes);
 router.use("/api/rider/kit", riderKitRoutes);
-
 router.use("/api/notifications", protectAny, notificationRoutes);
 
 // Admin Routes

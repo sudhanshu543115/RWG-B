@@ -2,10 +2,13 @@ import { Server } from "socket.io";
 import mongoose from "mongoose";
 import Message from "../models/chat/Message.js";
 import Conversation from "../models/chat/Conversation.js";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { createClient } from "redis";
 
 let io;
 
-export const initSocket = (server) => {
+export const initSocket = async (server) => {
+  // 1. Initialize Socket.io instance
   io = new Server(server, {
     cors: {
       origin: "*", // dev only
@@ -13,8 +16,28 @@ export const initSocket = (server) => {
     }
   });
 
+  // 2. Connect Redis Adapter if REDIS_URL is provided
+  const REDIS_URL = process.env.REDIS_URL;
+  if (REDIS_URL) {
+    try {
+      const pubClient = createClient({ url: REDIS_URL });
+      const subClient = pubClient.duplicate();
+
+      await Promise.all([pubClient.connect(), subClient.connect()]);
+
+      io.adapter(createAdapter(pubClient, subClient));
+      console.log("✅ REDIS ADAPTER CONNECTED TO SOCKET.IO");
+    } catch (error) {
+      console.error("❌ REDIS CONNECTION FAILED:", error.message);
+      console.warn("⚠️ Falling back to default single-process Socket.io adapter.");
+    }
+  } else {
+    console.warn("⚠️ REDIS_URL not found. Socket.io running in single-process mode.");
+  }
+
   console.log("🚀 SOCKET SERVER INITIALIZED");
 
+  // 3. Socket event handlers
   io.on("connection", (socket) => {
     console.log("🔥 NEW SOCKET CONNECTED:", socket.id);
 
@@ -42,19 +65,17 @@ export const initSocket = (server) => {
         socket.join("admin");
         console.log("✅ ADMIN REGISTERED & JOINED ROOM");
       }
-
     });
-
 
     socket.on("join-city", (city) => {
       socket.join(city.toLowerCase());
       console.log(`🏙️ Rider ${socket.id} joined room: ${city}`);
     });
+
     // Rider leaves city room
     socket.on("leave-city", (city) => {
       socket.leave(city.toLowerCase());
     });
-
 
     // --- LIVE TRACKING LOGIC ---
     // 1. Join a private room for the specific booking
@@ -62,16 +83,19 @@ export const initSocket = (server) => {
       socket.join(`ride:${bookingId}`);
       console.log(`✅ Socket ${socket.id} joined ride room: ride:${bookingId}`);
     });
+
     // 2. Handle location updates from the Rider
     socket.on("update-ride-location", async (data) => {
       const { bookingId, lat, lng } = data;
       if (!bookingId || !lat || !lng) {
-            console.log("❌ Invalid tracking payload:", data);
-        return;}
-      // A. Broadcast to the Tourist (and Admin) in that room instantly
-      // We use .to() to send to everyone in the room except the sender
+        console.log("❌ Invalid tracking payload:", data);
+        return;
+      }
+
+      // Broadcast to Tourist and Admin in that room
       socket.to(`ride:${bookingId}`).emit("ride-location-updated", { lat, lng });
-      // B. Save to Database (Optional: Update every 10 seconds or so to save performance)
+
+      // Save to Database
       try {
         await mongoose.model("Booking").findByIdAndUpdate(bookingId, {
           liveLocation: {
@@ -84,7 +108,8 @@ export const initSocket = (server) => {
         console.error("❌ Live Tracking DB Error:", err.message);
       }
     });
-    // 3. Leave the room when ride is finished (Optional but good practice)
+
+    // 3. Leave the room when ride is finished
     socket.on("leave-ride", (bookingId) => {
       socket.leave(`ride:${bookingId}`);
     });
@@ -93,32 +118,18 @@ export const initSocket = (server) => {
 
     // Join chat room
     socket.on("join-chat", ({ bookingId }) => {
-
       if (!bookingId) return;
 
       socket.join(`chat:${bookingId}`);
-
-      console.log(
-        `💬 SOCKET ${socket.id} JOINED CHAT ROOM: chat:${bookingId}`
-      );
+      console.log(`💬 SOCKET ${socket.id} JOINED CHAT ROOM: chat:${bookingId}`);
     });
-
 
     // Send Message
     socket.on("send-message", async (data) => {
       try {
-        const {
-          bookingId,
-          senderId,
-          senderRole,
-          message
-        } = data;
+        const { bookingId, senderId, senderRole, message } = data;
 
-        if (
-          !bookingId ||
-          !senderId ||
-          !message
-        ) {
+        if (!bookingId || !senderId || !message) {
           return;
         }
 
@@ -132,25 +143,22 @@ export const initSocket = (server) => {
 
         // Save in DB
         const newMessage = await Message.create({
-  conversationId: conversation._id,
-  senderId,
-  senderRole,
-  receiverId,
-  message
-});
+          conversationId: conversation._id,
+          senderId,
+          senderRole,
+          receiverId,
+          message
+        });
 
         const populatedMessage = await Message.findById(newMessage._id);
 
         // Emit to chat room for users in the chat
-        io.to(`chat:${bookingId}`).emit(
-          "receive-message",
-          populatedMessage
-        );
+        io.to(`chat:${bookingId}`).emit("receive-message", populatedMessage);
 
         // Emit notification to the receiver's specific room if they're not in chat
         const receiverRoom = senderRole === "tourist" ? `rider:${receiverId}` : `tourist:${receiverId}`;
         console.log(`🔔 Sending chat notification to ${receiverRoom} for booking ${bookingId}`);
-        
+
         io.to(receiverRoom).emit("new-chat-message", {
           bookingId,
           senderId,
@@ -161,15 +169,10 @@ export const initSocket = (server) => {
         });
 
         console.log("💬 NEW MESSAGE:", message);
-
       } catch (error) {
-        console.error(
-          "❌ SEND MESSAGE ERROR:",
-          error.message
-        );
+        console.error("❌ SEND MESSAGE ERROR:", error.message);
       }
     });
-
 
     // Mark messages seen
     socket.on("mark-seen", async ({ bookingId, userId }) => {
@@ -188,30 +191,19 @@ export const initSocket = (server) => {
           }
         );
 
-        io.to(`chat:${bookingId}`).emit(
-          "messages-seen",
-          {
-            bookingId,
-            userId
-          }
-        );
-
+        io.to(`chat:${bookingId}`).emit("messages-seen", {
+          bookingId,
+          userId
+        });
       } catch (error) {
-        console.error(
-          "❌ MARK SEEN ERROR:",
-          error.message
-        );
+        console.error("❌ MARK SEEN ERROR:", error.message);
       }
     });
-
-
-
 
     // 4. Handle location updates from the Tourist
     socket.on("update-tourist-location", (data) => {
       const { bookingId, lat, lng } = data;
       if (!bookingId || !lat || !lng) return;
-      // Broadcast to the Rider in the room
       socket.to(`ride:${bookingId}`).emit("tourist-location-updated", { lat, lng });
     });
 
