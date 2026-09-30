@@ -242,4 +242,14 @@ const bookingSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+
+
+// Indexes for fast ride history, tracking status, and city queries
+bookingSchema.index({ touristId: 1, createdAt: -1 });
+bookingSchema.index({ riderId: 1, "tracking.status": 1 });
+bookingSchema.index({ city: 1, "tracking.status": 1 });
+bookingSchema.index({ createdAt: -1 });
+
+
+
 export default mongoose.models.Booking || mongoose.model("Booking", bookingSchema);

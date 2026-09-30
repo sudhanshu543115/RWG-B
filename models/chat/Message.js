@@ -40,6 +40,10 @@ const messageSchema = new mongoose.Schema(
   }
 );
 
+// Index for instant chat history lookup
+messageSchema.index({ conversationId: 1, createdAt: 1 });
+
+
 export default mongoose.model(
   "Message",
   messageSchema
