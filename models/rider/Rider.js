@@ -5,17 +5,17 @@ const riderSchema = new mongoose.Schema({
     name: { type: String, default: "" },
     email: { type: String, default: "" },
     //password: { type: String, default: "" }, 
-    
+
     // Step 1: Personal
     city: { type: String, default: "" },
     gender: { type: String, default: "" },
     profileImage: { type: String, default: "" },
 
     // Step 2: Vehicle & Expertise
-    vehicleType: { 
-        type: String, 
-        enum: ["bike", "bike-light", "cab", "auto", ""], 
-        default: "" 
+    vehicleType: {
+        type: String,
+        enum: ["bike", "bike-light", "cab", "auto", ""],
+        default: ""
     },
     vehicleModel: { type: String, default: "" },
     vehicleNumber: { type: String, default: "" },
@@ -31,18 +31,18 @@ const riderSchema = new mongoose.Schema({
     licenseImage: { type: String, default: "" },
     rcImage: { type: String, default: "" },
     insuranceImage: { type: String, default: "" },
-    vehicleImage: { type: String, default: "" }, 
+    vehicleImage: { type: String, default: "" },
     selfieImage: { type: String, default: "" },
 
     // Status & Verification
     profileCompleted: { type: Boolean, default: false },
-    verificationStatus: { 
-        type: String, 
-        enum: ["pending", "approved", "rejected"], 
-        default: "pending" 
+    verificationStatus: {
+        type: String,
+        enum: ["pending", "approved", "rejected"],
+        default: "pending"
     },
     isVerified: { type: Boolean, default: false }, // Sync with approved status
-    
+
     // Runtime
     isOnline: { type: Boolean, default: false },
     walletBalance: { type: Number, default: 0 },
@@ -53,5 +53,12 @@ const riderSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+
+
+// Indexes for fast rider matching & online status lookups
+riderSchema.index({ city: 1, verificationStatus: 1, isVerified: 1, vehicleType: 1 });
+riderSchema.index({ isOnline: 1, city: 1 });
+
 
 export default mongoose.models.Rider || mongoose.model("Rider", riderSchema);
