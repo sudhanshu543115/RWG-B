@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dns from "dns";
 import http from "http";
+import { createClient } from "redis";
 
 import { PORT } from "./config/env.js";
 import connectDB from "./config/db.js";
@@ -44,8 +45,57 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({
     status: "success",
     message: "Server is healthy",
+    redisConfigured: Boolean(process.env.REDIS_URL),
     timestamp: new Date().toISOString()
   });
+});
+
+app.get("/api/redis-check", async (req, res) => {
+  const REDIS_URL = process.env.REDIS_URL;
+  if (!REDIS_URL) {
+    return res.status(200).json({
+      success: false,
+      status: "not_configured",
+      message: "REDIS_URL is not set in backend .env",
+      configured: false
+    });
+  }
+
+  const start = Date.now();
+  let client;
+  try {
+    client = createClient({ url: REDIS_URL });
+    client.on("error", () => {});
+    await client.connect();
+
+    const ping = await client.ping();
+    const testKey = `rwg_browser_test_${Date.now()}`;
+    await client.set(testKey, "active", { EX: 15 });
+    const readBack = await client.get(testKey);
+    const latency = Date.now() - start;
+    await client.disconnect();
+
+    res.status(200).json({
+      success: true,
+      status: "connected",
+      message: "Redis is connected and responding correctly!",
+      ping: ping, // should return "PONG"
+      readWriteTest: readBack === "active" ? "passed" : "failed",
+      latency: `${latency}ms`,
+      provider: REDIS_URL.includes("upstash") ? "Upstash Cloud Redis" : "Custom/Local Redis",
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    if (client) {
+      try { await client.disconnect(); } catch (_) {}
+    }
+    res.status(500).json({
+      success: false,
+      status: "error",
+      message: "Redis connection failed",
+      error: error.message
+    });
+  }
 });
 
 app.use(routes);
