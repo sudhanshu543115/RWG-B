@@ -146,13 +146,18 @@ const bookingSchema = new mongoose.Schema({
 
   // 💸 Cancellation charge details
   cancellation: {
-    chargePercent:  { type: Number, default: 0 },      // snapshot of policy at cancel time
-    chargeAmount:   { type: Number, default: 0 },      // ₹ deducted (tourist) or penalty (rider)
-    refundAmount:   { type: Number, default: 0 },      // ₹ refunded to tourist
-    riderPenalty:   { type: Number, default: 0 },      // ₹ deducted from rider wallet
-    refundId:       { type: String },                  // Razorpay refund ID
-    refundStatus:   { type: String, enum: ['pending', 'processed', 'failed', 'not_applicable'] },
-    cancelledAt:    { type: Date }
+    scenario:          { type: String },                  // Matched scenario name
+    trigger:           { type: String },                  // Trigger condition
+    chargePercent:     { type: Number, default: 0 },      // snapshot of policy at cancel time
+    chargeAmount:      { type: Number, default: 0 },      // ₹ deducted (tourist) or penalty (rider)
+    refundAmount:      { type: Number, default: 0 },      // ₹ refunded to tourist
+    riderCompensation: { type: Number, default: 0 },      // ₹ credited to rider wallet
+    riderPenalty:      { type: Number, default: 0 },      // ₹ deducted from rider wallet
+    refundId:          { type: String },                  // Razorpay refund ID
+    refundStatus:      { type: String, enum: ['pending', 'processed', 'failed', 'not_applicable'] },
+    cancelledAt:       { type: Date },
+    cancelledBy:       { type: String },
+    reason:            { type: String }
   },
 
   assignmentStatus: {

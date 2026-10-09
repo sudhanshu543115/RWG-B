@@ -7,8 +7,8 @@
     "test": "tests"
   },
   "scripts": {
-    "start": "pm2-runtime start ecosystem.config.cjs",
-    "dev": "nodemon server.js"
+    "start": "node api.js && pm2-runtime start ecosystem.config.cjs",
+    "dev": "node api.js && nodemon server.js"
   },
   "keywords": [],
   "author": "",
