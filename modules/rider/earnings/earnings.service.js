@@ -74,18 +74,85 @@ export const getRiderEarningsService = async (riderId) => {
         });
     }
 
-    // ── 5. LATEST TRANSACTIONS (Last 15) ──────────
-    const latestTransactions = completedBookings.slice(0, 15).map(b => ({
+    // ── 5. LATEST TRANSACTIONS & CANCELLATION DEDUCTIONS ──────────
+    const rideTransactions = completedBookings.map(b => ({
         _id: b._id,
+        bookingId: b._id,
         type: "ride",
-        title: `Trip - ${b.city}`,
+        category: "ride",
+        title: `Trip - ${b.city || "Tour"}`,
+        desc: `Completed Tour · ${b.city || "Tour"}`,
         date: b.updatedAt,
         tourist: b.touristId?.name || "Tourist",
-        amount: (b.pricing?.totalAmount || 0) - (b.pricing?.serviceFee || 0),
+        amount: Math.max((b.pricing?.totalAmount || 0) - (b.pricing?.serviceFee || 0), 0),
         totalAmount: b.pricing?.totalAmount || 0,
         platformFee: b.pricing?.serviceFee || 0,
         status: b.payment?.status || "paid"
     }));
+
+    // Query cancelled bookings for this rider that have wallet penalty, compensation, or were cancelled by rider
+    const cancelledBookings = await Booking.find({
+        $and: [
+            {
+                $or: [
+                    { riderId },
+                    { assignedRiderId: riderId }
+                ]
+            },
+            { bookingStatus: "cancelled" },
+            {
+                $or: [
+                    { "cancellation.riderPenalty": { $gt: 0 } },
+                    { "cancellation.riderCompensation": { $gt: 0 } },
+                    { cancelledBy: "rider" }
+                ]
+            }
+        ]
+    })
+    .populate("touristId", "name phone profileImage")
+    .sort({ updatedAt: -1 });
+
+    const cancellationTransactions = [];
+    cancelledBookings.forEach(b => {
+        const penaltyAmt = Number(b.cancellation?.riderPenalty || (b.cancelledBy === "rider" ? 100 : 0));
+        // If rider was penalized (e.g. ₹100 deducted from wallet)
+        if (penaltyAmt > 0) {
+            cancellationTransactions.push({
+                _id: `penalty_${b._id}`,
+                bookingId: b._id,
+                type: "debit",
+                category: "penalty",
+                title: `Cancellation Penalty · ${b.city || "Trip"}`,
+                desc: `Trip Cancelled by Guide · ₹${penaltyAmt} Wallet Penalty`,
+                date: b.cancellation?.cancelledAt || b.updatedAt,
+                tourist: b.touristId?.name || "Cancelled Trip",
+                amount: penaltyAmt,
+                status: "Deducted",
+                reason: b.cancellation?.reason || b.cancellationReason || "Cancelled by Guide"
+            });
+        }
+        // If rider was credited compensation (e.g. tourist cancelled en route)
+        const compAmt = Number(b.cancellation?.riderCompensation || 0);
+        if (compAmt > 0) {
+            cancellationTransactions.push({
+                _id: `comp_${b._id}`,
+                bookingId: b._id,
+                type: "credit",
+                category: "compensation",
+                title: `Cancellation Compensation · ${b.city || "Trip"}`,
+                desc: `Tourist Cancelled · +₹${compAmt} Compensation Credited`,
+                date: b.cancellation?.cancelledAt || b.updatedAt,
+                tourist: b.touristId?.name || "Tourist",
+                amount: compAmt,
+                status: "Credited",
+                reason: b.cancellation?.reason || "Tourist cancelled while en route / at pickup"
+            });
+        }
+    });
+
+    const latestTransactions = [...rideTransactions, ...cancellationTransactions]
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 25);
 
     // ── 6. QUICK INSIGHTS ──────────────────────────
     // Peak day
