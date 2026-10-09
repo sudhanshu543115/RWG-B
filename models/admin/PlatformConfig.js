@@ -24,14 +24,29 @@ const platformConfigSchema = new mongoose.Schema({
     FORMULA: String
   },
 
-  // ── Cancellation Policy ───────────────────────────────
+  // ── Cancellation Policy (Scenario-Based) ───────────────
   CANCELLATION_POLICY: {
-    // First X% of gap (booking created → ride start) = free cancel window for tourist
+    // 1. Free cancel window in minutes (e.g. 5 mins after booking)
+    FREE_CANCEL_WINDOW_MINS: { type: Number, default: 5 },
+
+    // 2. Rider on the way (heading_to_pickup)
+    ON_THE_WAY_FEE: { type: Number, default: 50 },
+    ON_THE_WAY_RIDER_COMPENSATION: { type: Number, default: 35 },
+
+    // 3. Rider arrived at location (arrived_at_pickup)
+    ARRIVED_FEE: { type: Number, default: 100 },
+    ARRIVED_RIDER_COMPENSATION: { type: Number, default: 70 },
+
+    // 4. Tourist No-Show
+    NO_SHOW_WAIT_MINS: { type: Number, default: 15 },
+    NO_SHOW_RIDER_SHARE_PERCENT: { type: Number, default: 70 },
+
+    // 5. Rider / Guide Cancel
+    RIDER_CANCEL_PENALTY: { type: Number, default: 100 },
+
+    // Legacy fallback fields
     FREE_CANCEL_PERCENT: { type: Number, default: 0.30 },
-    // % of totalAmount deducted from tourist's advance if they cancel after free window
     TOURIST_CANCEL_CHARGE_PERCENT: { type: Number, default: 0.03 },
-    // % of totalAmount deducted from rider's wallet if rider cancels after free window
-    // (gap = assignment time → ride start)
     RIDER_CANCEL_CHARGE_PERCENT: { type: Number, default: 0.03 },
   },
   RIDE_TYPES: [{
