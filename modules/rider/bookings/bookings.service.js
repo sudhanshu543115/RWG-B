@@ -495,70 +495,38 @@ export const cancelBookingService = async (riderId, bookingId, reason) => {
         throw new Error("Booking is already cancelled.");
     }
 
-    // ── Cancellation charge calculation (Rider) ──────────────────────────
+    // ── Scenario-Based Cancellation Charge Calculation (Rider) ──────────
     const config = await PlatformConfig.findOne();
     const policy = config?.CANCELLATION_POLICY || {};
-    const freeCancelPercent = policy.FREE_CANCEL_PERCENT           ?? 0.30;
-    const chargePercent     = policy.RIDER_CANCEL_CHARGE_PERCENT   ?? 0.03;
-
-    // Build ride start datetime from booking.date + booking.startTime
-    let rideStart = null;
-    try {
-        let timeStr = booking.startTime || "00:00";
-        const match = timeStr.trim().match(/^(\d+):(\d+)\s*(AM|PM)?$/i);
-        let h = 0, m = 0;
-        if (match) {
-            h = parseInt(match[1], 10);
-            m = parseInt(match[2], 10);
-            const period = match[3] ? match[3].toUpperCase() : null;
-            if (period === "PM" && h !== 12) h += 12;
-            if (period === "AM" && h === 12) h = 0;
-        } else {
-            [h, m] = timeStr.split(":").map(Number);
-        }
-        
-        rideStart = new Date(booking.date);
-        rideStart.setHours(h, m, 0, 0);
-    } catch (_) {}
-
-    // Gap is measured from assignedAt → ride start (falls back to createdAt if missing)
-    const assignedAt = booking.assignedAt || booking.createdAt;
+    const riderPenaltyAmount = policy.RIDER_CANCEL_PENALTY ?? 100;
     const now = new Date();
 
-    let riderPenalty = 0;
-
-    if (rideStart && assignedAt && rideStart > assignedAt) {
-        const totalGapMs   = rideStart.getTime() - assignedAt.getTime();
-        const freeWindowMs = totalGapMs * freeCancelPercent;
-        const freeDeadline = new Date(assignedAt.getTime() + freeWindowMs);
-
-        if (now > freeDeadline) {
-            // After free window — apply 3% penalty on rider wallet
-            const totalAmount = booking.pricing?.totalAmount || 0;
-            riderPenalty = Math.round(totalAmount * chargePercent);
-
-            // Deduct from rider wallet — wallet CAN go negative, auto-recovers on next earning
-            await Rider.findByIdAndUpdate(riderId, {
-                $inc: { walletBalance: -riderPenalty }
-            });
-        }
+    // Deduct penalty from rider wallet (wallet can go negative, auto-recovers on next earnings)
+    if (riderPenaltyAmount > 0) {
+        await Rider.findByIdAndUpdate(riderId, {
+            $inc: { walletBalance: -riderPenaltyAmount }
+        });
+        console.log(`⚠️ Deducted ₹${riderPenaltyAmount} penalty from rider wallet for cancellation`);
     }
 
     // Tourist ALWAYS gets full advance refunded when rider cancels (rider's fault)
-    const refundAmount = booking.pricing?.advanceAmount || 0;
+    const refundAmount = Number(booking.pricing?.advanceAmount || booking.payment?.amountPaid || 0);
 
     booking.bookingStatus      = "cancelled";
     booking.cancellationReason = reason || "Not specified";
     booking.cancelledBy        = "rider";
     booking.cancellation = {
-        chargePercent,
-        chargeAmount:  0,          // tourist is not charged when rider cancels
-        refundAmount,              // tourist gets full advance back
-        riderPenalty,
-        refundStatus:  refundAmount > 0 ? "pending" : "not_applicable",
-        cancelledAt:   now,
-        cancelledBy:   "rider",
-        reason:        reason || "Not specified"
+        scenario:          "Rider Cancel",
+        trigger:           "Cancellation by Guide",
+        chargePercent:     0,
+        chargeAmount:      0,          // tourist is not charged when rider cancels
+        refundAmount,                  // tourist gets full advance back
+        riderCompensation: 0,
+        riderPenalty:      riderPenaltyAmount,
+        refundStatus:      refundAmount > 0 ? "pending" : "not_applicable",
+        cancelledAt:       now,
+        cancelledBy:       "rider",
+        reason:            reason || "Not specified"
     };
 
     await booking.save();
