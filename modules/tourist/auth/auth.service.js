@@ -35,11 +35,17 @@ export const verifyOtpService = async (phone, otp) => {
         user = await User.create({ phone });
     }
 
+    if (user.name && user.email && !user.profileCompleted) {
+        user.profileCompleted = true;
+        await user.save();
+    }
+
     const token = generateToken(user._id, "tourist");
     await Otp.deleteMany({ phone });
 
     return {
         token,
-        isProfileComplete: !!user.name
+        user,
+        isProfileComplete: Boolean(user.profileCompleted || (user.name && user.email))
     };
 };
