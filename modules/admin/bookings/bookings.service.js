@@ -33,8 +33,11 @@ export const getBookingById = async (id) => {
 
     if (!booking) return null;
 
+    const refundRequest = await RefundRequest.findOne({ bookingId: id }).lean();
+
     return {
         ...booking,
+        refundRequest: refundRequest || null,
         interestedCount: booking.interestedRiders?.length || 0,
         rejectedCount: booking.rejectedRiders?.length || 0
     };
