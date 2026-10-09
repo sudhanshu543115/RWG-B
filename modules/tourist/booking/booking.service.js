@@ -405,53 +405,73 @@ export const cancelBookingService = async (userId, bookingId, reason) => {
         throw new Error("Booking is already cancelled.");
     }
 
-    // ── Cancellation charge calculation ─────────────────────────────────
+    // ── Scenario-Based Cancellation Charge Calculation (Tourist) ────────
     const config = await PlatformConfig.findOne();
     const policy = config?.CANCELLATION_POLICY || {};
-    const freeCancelPercent   = policy.FREE_CANCEL_PERCENT            ?? 0.30;
-    const chargePercent       = policy.TOURIST_CANCEL_CHARGE_PERCENT  ?? 0.03;
 
-    // Build ride start datetime from booking.date + booking.startTime (e.g. "14:00")
-    let rideStart = null;
-    try {
-        let timeStr = booking.startTime || "00:00";
-        const match = timeStr.trim().match(/^(\d+):(\d+)\s*(AM|PM)?$/i);
-        let h = 0, m = 0;
-        if (match) {
-            h = parseInt(match[1], 10);
-            m = parseInt(match[2], 10);
-            const period = match[3] ? match[3].toUpperCase() : null;
-            if (period === "PM" && h !== 12) h += 12;
-            if (period === "AM" && h === 12) h = 0;
-        } else {
-            [h, m] = timeStr.split(":").map(Number);
-        }
-        
-        rideStart = new Date(booking.date);
-        rideStart.setHours(h, m, 0, 0);
-    } catch (_) {}
+    const freeCancelMins    = policy.FREE_CANCEL_WINDOW_MINS       ?? 5;
+    const onTheWayFee       = policy.ON_THE_WAY_FEE                ?? 50;
+    const onTheWayRiderComp = policy.ON_THE_WAY_RIDER_COMPENSATION ?? 35;
+    const arrivedFee        = policy.ARRIVED_FEE                   ?? 100;
+    const arrivedRiderComp  = policy.ARRIVED_RIDER_COMPENSATION    ?? 70;
 
-    const bookingCreated = booking.createdAt;
+    const bookingCreated = booking.createdAt ? new Date(booking.createdAt) : new Date();
     const now = new Date();
+    const minutesSinceBooking = (now.getTime() - bookingCreated.getTime()) / (1000 * 60);
 
+    const advanceAmount = Number(booking.pricing?.advanceAmount || booking.payment?.amountPaid || 0);
     let chargeAmount = 0;
-    let refundAmount = booking.pricing?.advanceAmount || 0;
-    let refundStatus = "not_applicable";
+    let refundAmount = advanceAmount;
+    let riderCompensation = 0;
+    let matchedScenario = "Tourist Cancel";
+    let triggerCondition = `Within ${freeCancelMins} min of booking / Free window`;
 
-    if (rideStart && bookingCreated && rideStart > bookingCreated) {
-        const totalGapMs   = rideStart.getTime() - bookingCreated.getTime();
-        const freeWindowMs = totalGapMs * freeCancelPercent;
-        const freeDeadline = new Date(bookingCreated.getTime() + freeWindowMs);
+    const currentStage = booking.tracking?.currentStage || "assigned";
+    const hasAssignedRider = Boolean(booking.assignedRiderId || booking.riderId);
 
-        if (now > freeDeadline) {
-            // After free window — apply 3% charge
-            const totalAmount = booking.pricing?.totalAmount || 0;
-            chargeAmount = Math.round(totalAmount * chargePercent);
-            refundAmount = Math.max((booking.pricing?.advanceAmount || 0) - chargeAmount, 0);
-            refundStatus = "pending"; // Razorpay refund to be triggered
-        } else {
-            // Within free window — full refund
-            refundStatus = "pending";
+    // Scenario 1: Within free cancellation window (e.g., 5 min)
+    if (minutesSinceBooking <= freeCancelMins) {
+        chargeAmount = 0;
+        refundAmount = advanceAmount;
+        riderCompensation = 0;
+        matchedScenario = "Tourist Cancel";
+        triggerCondition = `Within ${freeCancelMins} min of booking / Free window`;
+    }
+    // Scenario 3: Rider arrived at pickup location (arrived_at_pickup)
+    else if (currentStage === "arrived_at_pickup") {
+        chargeAmount = Math.min(arrivedFee, advanceAmount);
+        refundAmount = Math.max(advanceAmount - chargeAmount, 0);
+        riderCompensation = arrivedRiderComp;
+        matchedScenario = "Tourist Cancel";
+        triggerCondition = "Rider arrived at location (arrived_at_pickup)";
+    }
+    // Scenario 2: Rider on the way (heading_to_pickup) or assigned & moving
+    else if (currentStage === "heading_to_pickup" || (hasAssignedRider && minutesSinceBooking > freeCancelMins)) {
+        chargeAmount = Math.min(onTheWayFee, advanceAmount);
+        refundAmount = Math.max(advanceAmount - chargeAmount, 0);
+        riderCompensation = onTheWayRiderComp;
+        matchedScenario = "Tourist Cancel";
+        triggerCondition = "Rider on the way (heading_to_pickup)";
+    }
+    // Fallback: If no rider assigned yet, tourist gets full refund
+    else {
+        chargeAmount = 0;
+        refundAmount = advanceAmount;
+        riderCompensation = 0;
+        matchedScenario = "Tourist Cancel";
+        triggerCondition = "Unassigned / Early cancellation";
+    }
+
+    // Credit rider wallet if rider compensation applies
+    const riderIdToCredit = booking.assignedRiderId || booking.riderId;
+    if (riderCompensation > 0 && riderIdToCredit) {
+        try {
+            await Rider.findByIdAndUpdate(riderIdToCredit, {
+                $inc: { walletBalance: riderCompensation }
+            });
+            console.log(`💰 Credited rider ₹${riderCompensation} wallet compensation for tourist cancellation`);
+        } catch (walletErr) {
+            console.error("❌ Error crediting rider wallet compensation:", walletErr);
         }
     }
 
@@ -459,14 +479,17 @@ export const cancelBookingService = async (userId, bookingId, reason) => {
     booking.cancellationReason = reason || "Not specified";
     booking.cancelledBy        = "tourist";
     booking.cancellation = {
-        chargePercent,
+        scenario:          matchedScenario,
+        trigger:           triggerCondition,
+        chargePercent:     advanceAmount > 0 ? (chargeAmount / advanceAmount) : 0,
         chargeAmount,
         refundAmount,
-        riderPenalty:  0,
-        refundStatus,
-        cancelledAt:   now,
-        cancelledBy:   "tourist",
-        reason:        reason || "Not specified"
+        riderCompensation,
+        riderPenalty:      0,
+        refundStatus:      refundAmount > 0 ? "pending" : "not_applicable",
+        cancelledAt:       now,
+        cancelledBy:       "tourist",
+        reason:            reason || "Not specified"
     };
 
     await booking.save();
